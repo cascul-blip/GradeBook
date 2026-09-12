@@ -8,3 +8,8 @@ On the grade tab:
 * [x] When clicking or tabbing into a points field, have all the text selected
 * [x] The grades should be integers.  There is no need for a decimal place in the number
 * [x] Clean up the widths of the dropdown box and points.  They should both be the as long as the longest dropdown value "uncompleted"
+
+* [x] Reverse the order of lessons in the gradebook.  Newest should be on the left, so the old ones will have to be scrolled to see.
+* [x] Keep the student name always visible and only scroll the assignments and the grades.  Similar to how freezing a column in excel would work.
+* [x] Left align the points and completion status so they line up 
+* [x] Add 2 pixels of spacing between each student on the list.

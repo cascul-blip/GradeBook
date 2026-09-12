@@ -13,7 +13,7 @@ public sealed class AssignmentRepository(SqliteConnectionFactory connectionFacto
             SELECT Id, ClassId, Quarter, Name, PointsPossible, DateCreated
             FROM Assignments
             WHERE ClassId = $classId AND Quarter = $quarter
-            ORDER BY DateCreated, Id;
+            ORDER BY DateCreated DESC, Id DESC;
             """;
         command.Parameters.AddWithValue("$classId", classId);
         command.Parameters.AddWithValue("$quarter", (int)quarter);

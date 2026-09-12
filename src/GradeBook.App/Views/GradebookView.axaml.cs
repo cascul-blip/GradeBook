@@ -138,6 +138,7 @@ public partial class GradebookView : UserControl
                     {
                         Spacing = 2,
                         Margin = new Avalonia.Thickness(2),
+                        HorizontalAlignment = HorizontalAlignment.Left,
                         Children = { scoreBox, statusBox }
                     };
                     // Fresh controls every time (no recycling): each cell binds to a specific GradeCellViewModel

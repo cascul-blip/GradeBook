@@ -36,6 +36,13 @@
         </StackPanel>
 
         <DataGrid Grid.Row="2" Name="GradeGrid" ItemsSource="{Binding Rows}" AutoGenerateColumns="False" IsReadOnly="False"
-                  GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#40808080" RowHeight="60" />
+                  GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#40808080" RowHeight="60"
+                  FrozenColumnCount="1">
+            <DataGrid.Styles>
+                <Style Selector="DataGridRow">
+                    <Setter Property="Margin" Value="0,0,0,2" />
+                </Style>
+            </DataGrid.Styles>
+        </DataGrid>
     </Grid>
 </UserControl>

@@ -149,4 +149,21 @@ public class AssignmentRepositoryTests : IDisposable
         Assert.Null(await assignmentRepo.GetByIdAsync(assignmentId));
         Assert.Empty(await gradeRepo.GetRecordsForClassAndQuarterAsync(classId, Quarter.Q1));
     }
+
+    [Fact]
+    public async Task GetForClassAndQuarterAsync_ReturnsNewestAssignmentFirst()
+    {
+        var classRepo = new ClassRepository(_connectionFactory);
+        var assignmentRepo = new AssignmentRepository(_connectionFactory);
+
+        var classId = await classRepo.AddAsync("Math 87");
+        var firstId = await assignmentRepo.CreateAssignmentWithGradesAsync(classId, Quarter.Q1, "Lesson 3", 30);
+        var secondId = await assignmentRepo.CreateAssignmentWithGradesAsync(classId, Quarter.Q1, "Lesson 4", 20);
+
+        var assignments = await assignmentRepo.GetForClassAndQuarterAsync(classId, Quarter.Q1);
+
+        // Newest lesson (Lesson 4, created second) should come first so it renders as the leftmost column.
+        Assert.Equal(secondId, assignments[0].Id);
+        Assert.Equal(firstId, assignments[1].Id);
+    }
 }
