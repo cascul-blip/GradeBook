@@ -77,16 +77,19 @@ public partial class GradebookView : UserControl
             var index = i;
             var assignment = assignments[i];
 
+            // Edit button goes first (left) so it stays visible/clickable even when a long lesson
+            // name would otherwise push it past the column's edge and get clipped.
             var headerPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
+            var editButton = new Button { Content = "Edit", Padding = new Avalonia.Thickness(6, 0), FontSize = 10 };
+            editButton.Click += async (_, _) => await EditAssignmentAsync(viewModel, assignment.Id, assignment.Name, assignment.PointsPossible);
+            headerPanel.Children.Add(editButton);
             headerPanel.Children.Add(new TextBlock
             {
                 Text = $"{assignment.Name} ({assignment.PointsPossible:0.##} pts)",
                 VerticalAlignment = VerticalAlignment.Center,
-                TextWrapping = Avalonia.Media.TextWrapping.Wrap
+                TextWrapping = Avalonia.Media.TextWrapping.NoWrap,
+                TextTrimming = Avalonia.Media.TextTrimming.CharacterEllipsis
             });
-            var editButton = new Button { Content = "Edit", Padding = new Avalonia.Thickness(6, 0), FontSize = 10 };
-            editButton.Click += async (_, _) => await EditAssignmentAsync(viewModel, assignment.Id, assignment.Name, assignment.PointsPossible);
-            headerPanel.Children.Add(editButton);
 
             // Column-major Tab order: from a score box, Tab goes to that row's status dropdown, then
             // the next row's score box in the same column (wrapping to the next column at the last row).
