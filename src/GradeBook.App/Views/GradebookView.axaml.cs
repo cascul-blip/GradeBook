@@ -2,6 +2,7 @@ using System.Collections.Specialized;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using Avalonia.Data;
+using GradeBook.App.Converters;
 using GradeBook.App.ViewModels;
 
 namespace GradeBook.App.Views;
@@ -76,8 +77,12 @@ public partial class GradebookView : UserControl
                     var cell = row.Cells[index];
 
                     var scoreBox = new TextBox { PlaceholderText = "score" };
-                    scoreBox.Bind(TextBox.TextProperty,
-                        new Binding(nameof(GradeCellViewModel.Score)) { Source = cell, Mode = BindingMode.TwoWay });
+                    scoreBox.Bind(TextBox.TextProperty, new Binding(nameof(GradeCellViewModel.Score))
+                    {
+                        Source = cell,
+                        Mode = BindingMode.TwoWay,
+                        Converter = DecimalScoreConverter.Instance
+                    });
 
                     var statusBox = new ComboBox { ItemsSource = GradeCellViewModel.StatusOptions };
                     statusBox.Bind(ComboBox.SelectedItemProperty,

@@ -1,6 +1,7 @@
 using System.Collections.ObjectModel;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using GradeBook.App.Services;
 using GradeBook.Core.Data.Repositories;
 using GradeBook.Core.Models;
 
@@ -9,7 +10,8 @@ namespace GradeBook.App.ViewModels;
 public partial class ClassesAndStudentsViewModel(
     IStudentRepository studentRepository,
     IClassRepository classRepository,
-    IEnrollmentRepository enrollmentRepository) : ViewModelBase
+    IEnrollmentRepository enrollmentRepository,
+    IConfirmationDialogService confirmationDialogService) : ViewModelBase
 {
     public ObservableCollection<Student> Students { get; } = [];
     public ObservableCollection<SchoolClass> Classes { get; } = [];
@@ -32,6 +34,9 @@ public partial class ClassesAndStudentsViewModel(
 
     [ObservableProperty]
     private string _editClassName = string.Empty;
+
+    [ObservableProperty]
+    private string? _statusMessage;
 
     public async Task InitializeAsync()
     {
@@ -85,6 +90,33 @@ public partial class ClassesAndStudentsViewModel(
     }
 
     [RelayCommand]
+    private async Task DeleteStudentAsync()
+    {
+        StatusMessage = null;
+        if (SelectedStudent is null)
+        {
+            return;
+        }
+
+        var confirmed = await confirmationDialogService.ConfirmAsync(
+            "Delete Student", $"Permanently delete \"{SelectedStudent.Name}\"? This cannot be undone.");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        try
+        {
+            await studentRepository.DeleteAsync(SelectedStudent.Id);
+            await ReloadStudentsAsync();
+        }
+        catch (InvalidOperationException ex)
+        {
+            StatusMessage = ex.Message;
+        }
+    }
+
+    [RelayCommand]
     private async Task AddClassAsync()
     {
         if (string.IsNullOrWhiteSpace(NewClassName))
@@ -119,6 +151,33 @@ public partial class ClassesAndStudentsViewModel(
 
         await classRepository.SetActiveAsync(SelectedClass.Id, !SelectedClass.IsActive);
         await ReloadClassesAsync();
+    }
+
+    [RelayCommand]
+    private async Task DeleteClassAsync()
+    {
+        StatusMessage = null;
+        if (SelectedClass is null)
+        {
+            return;
+        }
+
+        var confirmed = await confirmationDialogService.ConfirmAsync(
+            "Delete Class", $"Permanently delete \"{SelectedClass.Name}\"? This cannot be undone.");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        try
+        {
+            await classRepository.DeleteAsync(SelectedClass.Id);
+            await ReloadClassesAsync();
+        }
+        catch (InvalidOperationException ex)
+        {
+            StatusMessage = ex.Message;
+        }
     }
 
     private async Task ReloadStudentsAsync()

@@ -64,6 +64,24 @@ public sealed class ClassRepository(SqliteConnectionFactory connectionFactory) :
         await command.ExecuteNonQueryAsync();
     }
 
+    public async Task DeleteAsync(int id)
+    {
+        using var connection = connectionFactory.CreateOpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "DELETE FROM Classes WHERE Id = $id;";
+        command.Parameters.AddWithValue("$id", id);
+
+        try
+        {
+            await command.ExecuteNonQueryAsync();
+        }
+        catch (SqliteException ex) when (ex.SqliteErrorCode == 19)
+        {
+            throw new InvalidOperationException(
+                "This class has enrollments or assignments and can't be deleted. Deactivate it instead.", ex);
+        }
+    }
+
     private static SchoolClass ReadClass(SqliteDataReader reader) => new()
     {
         Id = reader.GetInt32(0),

@@ -9,10 +9,12 @@
              x:Class="GradeBook.App.Views.ClassesAndStudentsView"
              x:DataType="vm:ClassesAndStudentsViewModel">
 
-    <Grid ColumnDefinitions="*,*,2*" Margin="12" ColumnSpacing="12">
+    <Grid RowDefinitions="*,Auto" Margin="12" RowSpacing="8">
+
+    <Grid Grid.Row="0" ColumnDefinitions="*,*,2*" ColumnSpacing="12">
 
         <!-- Students -->
-        <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*,Auto,Auto">
+        <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*,Auto,Auto,Auto">
             <TextBlock Grid.Row="0" Text="Students" FontWeight="Bold" FontSize="14" Margin="0,0,0,6" />
 
             <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="4" Margin="0,0,0,6">
@@ -40,10 +42,13 @@
             <Button Grid.Row="4" Margin="0,6,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                     Content="{Binding SelectedStudent.IsActive, Converter={x:Static conv:BoolToActiveLabelConverter.Instance}}"
                     Command="{Binding ToggleStudentActiveCommand}" />
+
+            <Button Grid.Row="5" Margin="0,6,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                    Content="Delete" Command="{Binding DeleteStudentCommand}" />
         </Grid>
 
         <!-- Classes -->
-        <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*,Auto,Auto">
+        <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*,Auto,Auto,Auto">
             <TextBlock Grid.Row="0" Text="Classes" FontWeight="Bold" FontSize="14" Margin="0,0,0,6" />
 
             <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="4" Margin="0,0,0,6">
@@ -71,6 +76,9 @@
             <Button Grid.Row="4" Margin="0,6,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
                     Content="{Binding SelectedClass.IsActive, Converter={x:Static conv:BoolToActiveLabelConverter.Instance}}"
                     Command="{Binding ToggleClassActiveCommand}" />
+
+            <Button Grid.Row="5" Margin="0,6,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                    Content="Delete" Command="{Binding DeleteClassCommand}" />
         </Grid>
 
         <!-- Enrollment -->
@@ -88,5 +96,8 @@
                 </ListBox.ItemTemplate>
             </ListBox>
         </Grid>
+    </Grid>
+
+    <TextBlock Grid.Row="1" Text="{Binding StatusMessage}" TextWrapping="Wrap" Foreground="Red" />
     </Grid>
 </UserControl>

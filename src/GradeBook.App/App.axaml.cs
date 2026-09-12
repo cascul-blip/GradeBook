@@ -38,8 +38,9 @@ public partial class App : Application
 
             var mainWindow = new MainWindow();
             ISaveFileDialogService saveFileDialogService = new SaveFileDialogService(() => mainWindow);
+            IConfirmationDialogService confirmationDialogService = new ConfirmationDialogService(() => mainWindow);
 
-            var classesAndStudentsViewModel = new ClassesAndStudentsViewModel(studentRepository, classRepository, enrollmentRepository);
+            var classesAndStudentsViewModel = new ClassesAndStudentsViewModel(studentRepository, classRepository, enrollmentRepository, confirmationDialogService);
             var gradebookViewModel = new GradebookViewModel(classRepository, studentRepository, enrollmentRepository, assignmentRepository, gradeRepository);
             var reportsViewModel = new ReportsViewModel(classRepository, studentRepository, classReportService, studentReportService, saveFileDialogService);
             var mainViewModel = new MainViewModel(classesAndStudentsViewModel, gradebookViewModel, reportsViewModel);
