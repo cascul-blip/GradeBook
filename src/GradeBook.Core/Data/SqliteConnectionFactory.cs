@@ -29,7 +29,8 @@ public sealed class SqliteConnectionFactory
         return connection;
     }
 
-    private static string ResolveDefaultDatabasePath()
+    /// <summary>The path used when no explicit location has been configured via Settings.</summary>
+    public static string ResolveDefaultDatabasePath()
     {
         var appDataDir = Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData);
         var gradeBookDir = Path.Combine(appDataDir, "GradeBook");

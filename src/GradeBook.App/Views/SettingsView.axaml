@@ -1,0 +1,24 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:GradeBook.App.ViewModels"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="400"
+             x:Class="GradeBook.App.Views.SettingsView"
+             x:DataType="vm:SettingsViewModel">
+
+    <StackPanel Margin="16" Spacing="10" MaxWidth="600">
+        <TextBlock Text="Settings" FontWeight="Bold" FontSize="16" />
+
+        <TextBlock Text="Database Location" FontWeight="Bold" Margin="0,10,0,0" />
+        <TextBlock TextWrapping="Wrap" Foreground="Gray" FontSize="11">
+            Point this at a folder that syncs between your computers (e.g. Nextcloud) to keep grades
+            up to date no matter where you run GradeBook.
+        </TextBlock>
+
+        <TextBox Text="{Binding CurrentDatabasePath}" IsReadOnly="True" />
+        <Button Content="Choose Folder..." Command="{Binding ChooseFolderCommand}" HorizontalAlignment="Left" />
+
+        <TextBlock Text="{Binding StatusMessage}" Foreground="Green" TextWrapping="Wrap" />
+    </StackPanel>
+</UserControl>

@@ -21,5 +21,8 @@
         <TabItem Header="Reports">
             <views:ReportsView DataContext="{Binding Reports}" />
         </TabItem>
+        <TabItem Header="Settings">
+            <views:SettingsView DataContext="{Binding Settings}" />
+        </TabItem>
     </TabControl>
 </Window>

@@ -5,11 +5,13 @@ namespace GradeBook.App.ViewModels;
 public partial class MainViewModel(
     ClassesAndStudentsViewModel classesAndStudents,
     GradebookViewModel gradebook,
-    ReportsViewModel reports) : ViewModelBase
+    ReportsViewModel reports,
+    SettingsViewModel settings) : ViewModelBase
 {
     public ClassesAndStudentsViewModel ClassesAndStudents { get; } = classesAndStudents;
     public GradebookViewModel Gradebook { get; } = gradebook;
     public ReportsViewModel Reports { get; } = reports;
+    public SettingsViewModel Settings { get; } = settings;
 
     [ObservableProperty]
     private int _selectedTabIndex;
@@ -19,6 +21,7 @@ public partial class MainViewModel(
         await ClassesAndStudents.InitializeAsync();
         await Gradebook.InitializeAsync();
         await Reports.InitializeAsync();
+        Settings.Initialize();
     }
 
     // Classes/students are added on tab 0; the Gradebook (1) and Reports (2) tabs cache their own

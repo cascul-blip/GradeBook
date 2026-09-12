@@ -24,7 +24,10 @@ public partial class App : Application
         {
             QuestPDF.Settings.License = LicenseType.Community;
 
-            var connectionFactory = new SqliteConnectionFactory();
+            var settingsStore = new AppSettingsStore();
+            var databasePath = settingsStore.Load().DatabasePath ?? SqliteConnectionFactory.ResolveDefaultDatabasePath();
+
+            var connectionFactory = new SqliteConnectionFactory(databasePath);
             DatabaseInitializer.Initialize(connectionFactory);
 
             IStudentRepository studentRepository = new StudentRepository(connectionFactory);
@@ -39,11 +42,13 @@ public partial class App : Application
             var mainWindow = new MainWindow();
             ISaveFileDialogService saveFileDialogService = new SaveFileDialogService(() => mainWindow);
             IConfirmationDialogService confirmationDialogService = new ConfirmationDialogService(() => mainWindow);
+            IFolderPickerService folderPickerService = new FolderPickerService(() => mainWindow);
 
             var classesAndStudentsViewModel = new ClassesAndStudentsViewModel(studentRepository, classRepository, enrollmentRepository, confirmationDialogService);
             var gradebookViewModel = new GradebookViewModel(classRepository, studentRepository, enrollmentRepository, assignmentRepository, gradeRepository);
             var reportsViewModel = new ReportsViewModel(classRepository, studentRepository, classReportService, studentReportService, saveFileDialogService);
-            var mainViewModel = new MainViewModel(classesAndStudentsViewModel, gradebookViewModel, reportsViewModel);
+            var settingsViewModel = new SettingsViewModel(settingsStore, folderPickerService, confirmationDialogService);
+            var mainViewModel = new MainViewModel(classesAndStudentsViewModel, gradebookViewModel, reportsViewModel, settingsViewModel);
 
             mainWindow.DataContext = mainViewModel;
             desktop.MainWindow = mainWindow;
