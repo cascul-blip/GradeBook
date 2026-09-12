@@ -96,6 +96,18 @@ public partial class GradebookViewModel(
         await LoadGradebookAsync();
     }
 
+    public async Task UpdateAssignmentAsync(int assignmentId, string name, decimal pointsPossible)
+    {
+        await assignmentRepository.UpdateAsync(assignmentId, name, pointsPossible);
+        await LoadGradebookAsync();
+    }
+
+    public async Task DeleteAssignmentAsync(int assignmentId)
+    {
+        await assignmentRepository.DeleteAsync(assignmentId);
+        await LoadGradebookAsync();
+    }
+
     private async Task LoadGradebookAsync()
     {
         Assignments.Clear();

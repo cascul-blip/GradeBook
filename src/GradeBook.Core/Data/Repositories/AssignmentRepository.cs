@@ -91,6 +91,17 @@ public sealed class AssignmentRepository(SqliteConnectionFactory connectionFacto
         return assignmentId;
     }
 
+    public async Task UpdateAsync(int id, string name, decimal pointsPossible)
+    {
+        using var connection = connectionFactory.CreateOpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = "UPDATE Assignments SET Name = $name, PointsPossible = $points WHERE Id = $id;";
+        command.Parameters.AddWithValue("$name", name);
+        command.Parameters.AddWithValue("$points", pointsPossible);
+        command.Parameters.AddWithValue("$id", id);
+        await command.ExecuteNonQueryAsync();
+    }
+
     public async Task DeleteAsync(int id)
     {
         using var connection = connectionFactory.CreateOpenConnection();

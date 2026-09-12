@@ -26,11 +26,16 @@
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
             <TextBox Text="{Binding NewAssignmentName}" PlaceholderText="Assignment name" Width="200" />
-            <TextBox Text="{Binding NewAssignmentPoints}" PlaceholderText="Points" Width="80" />
+            <TextBox Text="{Binding NewAssignmentPoints}" PlaceholderText="Points" Width="80">
+                <TextBox.KeyBindings>
+                    <KeyBinding Gesture="Enter" Command="{Binding AddAssignmentCommand}" />
+                </TextBox.KeyBindings>
+            </TextBox>
             <Button Content="Add Assignment" Command="{Binding AddAssignmentCommand}" />
             <TextBlock Text="{Binding StatusMessage}" Foreground="Red" VerticalAlignment="Center" />
         </StackPanel>
 
-        <DataGrid Grid.Row="2" Name="GradeGrid" ItemsSource="{Binding Rows}" AutoGenerateColumns="False" IsReadOnly="False" />
+        <DataGrid Grid.Row="2" Name="GradeGrid" ItemsSource="{Binding Rows}" AutoGenerateColumns="False" IsReadOnly="False"
+                  GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#40808080" RowHeight="60" />
     </Grid>
 </UserControl>

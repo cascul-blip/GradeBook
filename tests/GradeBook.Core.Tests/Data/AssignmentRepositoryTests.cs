@@ -104,4 +104,49 @@ public class AssignmentRepositoryTests : IDisposable
         var records = await gradeRepo.GetRecordsForClassAndQuarterAsync(classId, Quarter.Q1);
         Assert.Contains(records, r => r.StudentId == lateJoinerId && r.Score == 0 && r.Status == GradeStatus.Uncompleted);
     }
+
+    [Fact]
+    public async Task UpdateAsync_RenamesAndRepointsAssignment_WithoutTouchingExistingGrades()
+    {
+        var studentRepo = new StudentRepository(_connectionFactory);
+        var classRepo = new ClassRepository(_connectionFactory);
+        var enrollmentRepo = new EnrollmentRepository(_connectionFactory);
+        var assignmentRepo = new AssignmentRepository(_connectionFactory);
+        var gradeRepo = new GradeRepository(_connectionFactory);
+
+        var classId = await classRepo.AddAsync("Math 87");
+        var studentId = await studentRepo.AddAsync("Micah");
+        await enrollmentRepo.EnrollAsync(studentId, classId);
+        var assignmentId = await assignmentRepo.CreateAssignmentWithGradesAsync(classId, Quarter.Q1, "Lesson 3", 30);
+        await gradeRepo.SetScoreAsync(assignmentId, studentId, 27);
+
+        await assignmentRepo.UpdateAsync(assignmentId, "Lesson 3 (Revised)", 25);
+
+        var updated = await assignmentRepo.GetByIdAsync(assignmentId);
+        Assert.Equal("Lesson 3 (Revised)", updated!.Name);
+        Assert.Equal(25, updated.PointsPossible);
+
+        var record = (await gradeRepo.GetRecordsForClassAndQuarterAsync(classId, Quarter.Q1)).Single();
+        Assert.Equal(27, record.Score); // the existing grade itself is untouched by an edit to the assignment
+    }
+
+    [Fact]
+    public async Task DeleteAsync_Assignment_CascadesToItsGrades()
+    {
+        var studentRepo = new StudentRepository(_connectionFactory);
+        var classRepo = new ClassRepository(_connectionFactory);
+        var enrollmentRepo = new EnrollmentRepository(_connectionFactory);
+        var assignmentRepo = new AssignmentRepository(_connectionFactory);
+        var gradeRepo = new GradeRepository(_connectionFactory);
+
+        var classId = await classRepo.AddAsync("Math 87");
+        var studentId = await studentRepo.AddAsync("Micah");
+        await enrollmentRepo.EnrollAsync(studentId, classId);
+        var assignmentId = await assignmentRepo.CreateAssignmentWithGradesAsync(classId, Quarter.Q1, "Lesson 3", 30);
+
+        await assignmentRepo.DeleteAsync(assignmentId);
+
+        Assert.Null(await assignmentRepo.GetByIdAsync(assignmentId));
+        Assert.Empty(await gradeRepo.GetRecordsForClassAndQuarterAsync(classId, Quarter.Q1));
+    }
 }
