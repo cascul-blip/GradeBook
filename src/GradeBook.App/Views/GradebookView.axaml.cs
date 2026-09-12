@@ -12,6 +12,10 @@ namespace GradeBook.App.Views;
 
 public partial class GradebookView : UserControl
 {
+    // Wide enough to fit the longest status option ("Uncompleted") plus the ComboBox's dropdown arrow;
+    // the score box matches it so the two controls line up visually within a cell.
+    private const double CellControlWidth = 120;
+
     private GradebookViewModel? _subscribedViewModel;
 
     // Keyed by (row, column index) so Tab/Shift+Tab can jump straight to a specific cell's control
@@ -99,7 +103,7 @@ public partial class GradebookView : UserControl
 
                     var cell = row.Cells[index];
 
-                    var scoreBox = new TextBox { PlaceholderText = "score" };
+                    var scoreBox = new TextBox { PlaceholderText = "score", Width = CellControlWidth };
                     scoreBox.Bind(TextBox.TextProperty, new Binding(nameof(GradeCellViewModel.Score))
                     {
                         Source = cell,
@@ -116,8 +120,11 @@ public partial class GradebookView : UserControl
                             scoreBox.Text = "0";
                         }
                     };
+                    // Selecting on focus means typing immediately overwrites the value, rather than
+                    // requiring the student's whole existing score to be manually cleared first.
+                    scoreBox.GotFocus += (_, _) => scoreBox.SelectAll();
 
-                    var statusBox = new ComboBox { ItemsSource = GradeCellViewModel.StatusOptions };
+                    var statusBox = new ComboBox { ItemsSource = GradeCellViewModel.StatusOptions, Width = CellControlWidth };
                     statusBox.Bind(ComboBox.SelectedItemProperty,
                         new Binding(nameof(GradeCellViewModel.Status)) { Source = cell, Mode = BindingMode.TwoWay });
 
@@ -130,6 +137,7 @@ public partial class GradebookView : UserControl
                     return new StackPanel
                     {
                         Spacing = 2,
+                        Margin = new Avalonia.Thickness(2),
                         Children = { scoreBox, statusBox }
                     };
                     // Fresh controls every time (no recycling): each cell binds to a specific GradeCellViewModel
