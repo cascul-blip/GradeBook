@@ -83,6 +83,16 @@ public partial class GradebookView : UserControl
                         Mode = BindingMode.TwoWay,
                         Converter = DecimalScoreConverter.Instance
                     });
+                    // Cleared-out score already becomes 0 in the bound value (via the converter above),
+                    // but if it was already 0 that's a no-op change and the Text stays blank on screen —
+                    // so on blur, explicitly snap the display back to "0" too.
+                    scoreBox.LostFocus += (_, _) =>
+                    {
+                        if (string.IsNullOrWhiteSpace(scoreBox.Text))
+                        {
+                            scoreBox.Text = "0";
+                        }
+                    };
 
                     var statusBox = new ComboBox { ItemsSource = GradeCellViewModel.StatusOptions };
                     statusBox.Bind(ComboBox.SelectedItemProperty,

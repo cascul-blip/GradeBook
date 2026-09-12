@@ -67,19 +67,41 @@ public sealed class StudentRepository(SqliteConnectionFactory connectionFactory)
     public async Task DeleteAsync(int id)
     {
         using var connection = connectionFactory.CreateOpenConnection();
-        using var command = connection.CreateCommand();
-        command.CommandText = "DELETE FROM Students WHERE Id = $id;";
-        command.Parameters.AddWithValue("$id", id);
+        using var transaction = connection.BeginTransaction();
 
-        try
+        // Only actual grade rows count as history worth protecting. A bare enrollment (active or
+        // since-unenrolled) in a class that never had an assignment carries no grade data, so it's
+        // safe to clean up as part of the delete rather than blocking it.
+        using (var checkCommand = connection.CreateCommand())
         {
-            await command.ExecuteNonQueryAsync();
+            checkCommand.Transaction = transaction;
+            checkCommand.CommandText = "SELECT COUNT(*) FROM Grades WHERE StudentId = $id;";
+            checkCommand.Parameters.AddWithValue("$id", id);
+            var gradeCount = (long)(await checkCommand.ExecuteScalarAsync() ?? 0L);
+            if (gradeCount > 0)
+            {
+                throw new InvalidOperationException(
+                    "This student has grade history and can't be deleted. Deactivate them instead.");
+            }
         }
-        catch (SqliteException ex) when (ex.SqliteErrorCode == 19)
+
+        using (var deleteEnrollments = connection.CreateCommand())
         {
-            throw new InvalidOperationException(
-                "This student has enrollment or grade history and can't be deleted. Deactivate them instead.", ex);
+            deleteEnrollments.Transaction = transaction;
+            deleteEnrollments.CommandText = "DELETE FROM Enrollments WHERE StudentId = $id;";
+            deleteEnrollments.Parameters.AddWithValue("$id", id);
+            await deleteEnrollments.ExecuteNonQueryAsync();
         }
+
+        using (var deleteStudent = connection.CreateCommand())
+        {
+            deleteStudent.Transaction = transaction;
+            deleteStudent.CommandText = "DELETE FROM Students WHERE Id = $id;";
+            deleteStudent.Parameters.AddWithValue("$id", id);
+            await deleteStudent.ExecuteNonQueryAsync();
+        }
+
+        transaction.Commit();
     }
 
     private static Student ReadStudent(SqliteDataReader reader) => new()
