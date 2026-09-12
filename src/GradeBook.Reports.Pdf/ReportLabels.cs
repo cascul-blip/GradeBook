@@ -2,7 +2,7 @@ using GradeBook.Core.Models;
 
 namespace GradeBook.Reports.Pdf;
 
-internal static class ReportLabels
+public static class ReportLabels
 {
     public static string PeriodLabel(ReportPeriod period) => period switch
     {

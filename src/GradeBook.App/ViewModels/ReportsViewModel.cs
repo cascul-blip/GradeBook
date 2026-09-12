@@ -27,6 +27,8 @@ public partial class ReportsViewModel(
 
     public ObservableCollection<SchoolClass> Classes { get; } = [];
     public ObservableCollection<Student> Students { get; } = [];
+    public ObservableCollection<ClassReportRowDisplay> ClassReportRows { get; } = [];
+    public ObservableCollection<StudentReportRowDisplay> StudentReportRows { get; } = [];
 
     [ObservableProperty]
     private ReportTargetType _selectedReportType = ReportTargetType.ClassReport;
@@ -41,12 +43,20 @@ public partial class ReportsViewModel(
     private ReportPeriod _selectedPeriod = ReportPeriod.Quarter1;
 
     [ObservableProperty]
+    private string? _previewTitle;
+
+    [ObservableProperty]
     private bool _isBusy;
 
     [ObservableProperty]
     private string? _statusMessage;
 
     public Task InitializeAsync() => RefreshFilterListsAsync();
+
+    partial void OnSelectedReportTypeChanged(ReportTargetType value) => _ = RefreshPreviewAsync();
+    partial void OnSelectedClassChanged(SchoolClass? value) => _ = RefreshPreviewAsync();
+    partial void OnSelectedStudentChanged(Student? value) => _ = RefreshPreviewAsync();
+    partial void OnSelectedPeriodChanged(ReportPeriod value) => _ = RefreshPreviewAsync();
 
     /// <summary>
     /// Re-reads the class/student lists from the database. They're added/renamed on the Classes &amp;
@@ -73,7 +83,59 @@ public partial class ReportsViewModel(
 
         SelectedClass = Classes.FirstOrDefault(c => c.Id == previousClassId) ?? Classes.FirstOrDefault();
         SelectedStudent = Students.FirstOrDefault(s => s.Id == previousStudentId) ?? Students.FirstOrDefault();
+
+        // Selection may not have actually changed (same class stays selected), which wouldn't otherwise
+        // trigger a preview rebuild — refresh explicitly so grade changes since the last visit show up.
+        await RefreshPreviewAsync();
     }
+
+    /// <summary>Builds the same report data the PDF export uses and renders it on-screen as a live preview.</summary>
+    private async Task RefreshPreviewAsync()
+    {
+        ClassReportRows.Clear();
+        StudentReportRows.Clear();
+        PreviewTitle = null;
+
+        if (SelectedReportType == ReportTargetType.ClassReport)
+        {
+            if (SelectedClass is null)
+            {
+                return;
+            }
+
+            var data = await classReportService.BuildReportAsync(SelectedClass.Id, SelectedPeriod);
+            PreviewTitle = $"{data.ClassName} — {ReportLabels.PeriodLabel(data.Period)}";
+            foreach (var row in data.Rows)
+            {
+                ClassReportRows.Add(new ClassReportRowDisplay(
+                    row.StudentName,
+                    ReportLabels.PercentLabel(row.Percentage),
+                    row.UncompletedCount,
+                    BreakdownDisplay(row.QuarterBreakdown)));
+            }
+        }
+        else
+        {
+            if (SelectedStudent is null)
+            {
+                return;
+            }
+
+            var data = await studentReportService.BuildReportAsync(SelectedStudent.Id, SelectedPeriod);
+            PreviewTitle = $"{data.StudentName} — {ReportLabels.PeriodLabel(data.Period)}";
+            foreach (var result in data.ClassResults)
+            {
+                StudentReportRows.Add(new StudentReportRowDisplay(
+                    result.ClassName,
+                    ReportLabels.PercentLabel(result.Percentage),
+                    result.UncompletedAssignmentNames.Count > 0 ? string.Join(", ", result.UncompletedAssignmentNames) : "None",
+                    BreakdownDisplay(result.QuarterBreakdown)));
+            }
+        }
+    }
+
+    private static string BreakdownDisplay(IReadOnlyList<QuarterBreakdownEntry> breakdown) =>
+        string.Join("   ", breakdown.Select(b => $"{b.QuarterLabel}: {ReportLabels.PercentLabel(b.Percentage)}"));
 
     [RelayCommand]
     private async Task ExportPdfAsync()

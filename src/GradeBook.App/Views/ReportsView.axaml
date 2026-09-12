@@ -5,50 +5,82 @@
              xmlns:oc="using:Avalonia.Data.Converters"
              xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
              xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
-             mc:Ignorable="d" d:DesignWidth="700" d:DesignHeight="400"
+             mc:Ignorable="d" d:DesignWidth="900" d:DesignHeight="600"
              x:Class="GradeBook.App.Views.ReportsView"
              x:DataType="vm:ReportsViewModel">
 
-    <StackPanel Margin="16" Spacing="10" MaxWidth="480">
+    <Grid RowDefinitions="Auto,Auto,*" Margin="16" RowSpacing="10">
 
-        <TextBlock Text="Reports" FontWeight="Bold" FontSize="16" />
+        <TextBlock Grid.Row="0" Text="Reports" FontWeight="Bold" FontSize="16" />
 
-        <StackPanel Orientation="Horizontal" Spacing="8">
-            <TextBlock Text="Report:" VerticalAlignment="Center" Width="60" />
-            <ComboBox Width="240" ItemsSource="{Binding ReportTypes}" SelectedItem="{Binding SelectedReportType}" />
+        <StackPanel Grid.Row="1" Spacing="10" MaxWidth="480">
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="Report:" VerticalAlignment="Center" Width="60" />
+                <ComboBox Width="240" ItemsSource="{Binding ReportTypes}" SelectedItem="{Binding SelectedReportType}" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="8"
+                        IsVisible="{Binding SelectedReportType, Converter={x:Static oc:ObjectConverters.Equal}, ConverterParameter={x:Static vm:ReportTargetType.ClassReport}}">
+                <TextBlock Text="Class:" VerticalAlignment="Center" Width="60" />
+                <ComboBox Width="240" ItemsSource="{Binding Classes}" SelectedItem="{Binding SelectedClass}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="model:SchoolClass">
+                            <TextBlock Text="{Binding Name}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="8"
+                        IsVisible="{Binding SelectedReportType, Converter={x:Static oc:ObjectConverters.Equal}, ConverterParameter={x:Static vm:ReportTargetType.StudentReport}}">
+                <TextBlock Text="Student:" VerticalAlignment="Center" Width="60" />
+                <ComboBox Width="240" ItemsSource="{Binding Students}" SelectedItem="{Binding SelectedStudent}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="model:Student">
+                            <TextBlock Text="{Binding Name}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="Period:" VerticalAlignment="Center" Width="60" />
+                <ComboBox Width="240" ItemsSource="{Binding Periods}" SelectedItem="{Binding SelectedPeriod}" />
+            </StackPanel>
+
+            <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                <Button Content="Export PDF" Command="{Binding ExportPdfCommand}" IsEnabled="{Binding !IsBusy}" />
+                <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" Foreground="Gray" VerticalAlignment="Center" />
+            </StackPanel>
         </StackPanel>
 
-        <StackPanel Orientation="Horizontal" Spacing="8"
-                    IsVisible="{Binding SelectedReportType, Converter={x:Static oc:ObjectConverters.Equal}, ConverterParameter={x:Static vm:ReportTargetType.ClassReport}}">
-            <TextBlock Text="Class:" VerticalAlignment="Center" Width="60" />
-            <ComboBox Width="240" ItemsSource="{Binding Classes}" SelectedItem="{Binding SelectedClass}">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate x:DataType="model:SchoolClass">
-                        <TextBlock Text="{Binding Name}" />
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-        </StackPanel>
+        <!-- On-screen preview: the same data the PDF export produces, shown live as the selection changes. -->
+        <Grid Grid.Row="2" RowDefinitions="Auto,*">
+            <TextBlock Grid.Row="0" Text="{Binding PreviewTitle}" FontWeight="Bold" Margin="0,0,0,6" />
 
-        <StackPanel Orientation="Horizontal" Spacing="8"
-                    IsVisible="{Binding SelectedReportType, Converter={x:Static oc:ObjectConverters.Equal}, ConverterParameter={x:Static vm:ReportTargetType.StudentReport}}">
-            <TextBlock Text="Student:" VerticalAlignment="Center" Width="60" />
-            <ComboBox Width="240" ItemsSource="{Binding Students}" SelectedItem="{Binding SelectedStudent}">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate x:DataType="model:Student">
-                        <TextBlock Text="{Binding Name}" />
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
-        </StackPanel>
+            <DataGrid Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True"
+                      GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#40808080"
+                      ItemsSource="{Binding ClassReportRows}"
+                      IsVisible="{Binding SelectedReportType, Converter={x:Static oc:ObjectConverters.Equal}, ConverterParameter={x:Static vm:ReportTargetType.ClassReport}}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Student" Binding="{Binding StudentName}" Width="160" />
+                    <DataGridTextColumn Header="Grade" Binding="{Binding GradeDisplay}" Width="80" />
+                    <DataGridTextColumn Header="Missing" Binding="{Binding MissingCount}" Width="80" />
+                    <DataGridTextColumn Header="Quarters" Binding="{Binding QuarterBreakdownDisplay}" Width="*" />
+                </DataGrid.Columns>
+            </DataGrid>
 
-        <StackPanel Orientation="Horizontal" Spacing="8">
-            <TextBlock Text="Period:" VerticalAlignment="Center" Width="60" />
-            <ComboBox Width="240" ItemsSource="{Binding Periods}" SelectedItem="{Binding SelectedPeriod}" />
-        </StackPanel>
-
-        <Button Content="Export PDF" Command="{Binding ExportPdfCommand}" IsEnabled="{Binding !IsBusy}" HorizontalAlignment="Left" Margin="0,8,0,0" />
-
-        <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" Foreground="Gray" />
-    </StackPanel>
+            <DataGrid Grid.Row="1" AutoGenerateColumns="False" IsReadOnly="True"
+                      GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#40808080"
+                      ItemsSource="{Binding StudentReportRows}"
+                      IsVisible="{Binding SelectedReportType, Converter={x:Static oc:ObjectConverters.Equal}, ConverterParameter={x:Static vm:ReportTargetType.StudentReport}}">
+                <DataGrid.Columns>
+                    <DataGridTextColumn Header="Class" Binding="{Binding ClassName}" Width="160" />
+                    <DataGridTextColumn Header="Grade" Binding="{Binding GradeDisplay}" Width="80" />
+                    <DataGridTextColumn Header="Missing" Binding="{Binding MissingDisplay}" Width="200" />
+                    <DataGridTextColumn Header="Quarters" Binding="{Binding QuarterBreakdownDisplay}" Width="*" />
+                </DataGrid.Columns>
+            </DataGrid>
+        </Grid>
+    </Grid>
 </UserControl>
