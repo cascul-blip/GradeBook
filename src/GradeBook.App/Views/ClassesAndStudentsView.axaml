@@ -1,0 +1,92 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:GradeBook.App.ViewModels"
+             xmlns:conv="using:GradeBook.App.Converters"
+             xmlns:model="using:GradeBook.Core.Models"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="600"
+             x:Class="GradeBook.App.Views.ClassesAndStudentsView"
+             x:DataType="vm:ClassesAndStudentsViewModel">
+
+    <Grid ColumnDefinitions="*,*,2*" Margin="12" ColumnSpacing="12">
+
+        <!-- Students -->
+        <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*,Auto,Auto">
+            <TextBlock Grid.Row="0" Text="Students" FontWeight="Bold" FontSize="14" Margin="0,0,0,6" />
+
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="4" Margin="0,0,0,6">
+                <TextBox Text="{Binding NewStudentName}" PlaceholderText="New student name" Width="160">
+                    <TextBox.KeyBindings>
+                        <KeyBinding Gesture="Enter" Command="{Binding AddStudentCommand}" />
+                    </TextBox.KeyBindings>
+                </TextBox>
+                <Button Content="Add" Command="{Binding AddStudentCommand}" />
+            </StackPanel>
+
+            <ListBox Grid.Row="2" ItemsSource="{Binding Students}" SelectedItem="{Binding SelectedStudent}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="model:Student">
+                        <TextBlock Text="{Binding Name}" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="4" Margin="0,6,0,0">
+                <TextBox Text="{Binding EditStudentName}" Width="160" />
+                <Button Content="Rename" Command="{Binding RenameStudentCommand}" />
+            </StackPanel>
+
+            <Button Grid.Row="4" Margin="0,6,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                    Content="{Binding SelectedStudent.IsActive, Converter={x:Static conv:BoolToActiveLabelConverter.Instance}}"
+                    Command="{Binding ToggleStudentActiveCommand}" />
+        </Grid>
+
+        <!-- Classes -->
+        <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*,Auto,Auto">
+            <TextBlock Grid.Row="0" Text="Classes" FontWeight="Bold" FontSize="14" Margin="0,0,0,6" />
+
+            <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="4" Margin="0,0,0,6">
+                <TextBox Text="{Binding NewClassName}" PlaceholderText="New class name" Width="160">
+                    <TextBox.KeyBindings>
+                        <KeyBinding Gesture="Enter" Command="{Binding AddClassCommand}" />
+                    </TextBox.KeyBindings>
+                </TextBox>
+                <Button Content="Add" Command="{Binding AddClassCommand}" />
+            </StackPanel>
+
+            <ListBox Grid.Row="2" ItemsSource="{Binding Classes}" SelectedItem="{Binding SelectedClass}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="model:SchoolClass">
+                        <TextBlock Text="{Binding Name}" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+
+            <StackPanel Grid.Row="3" Orientation="Horizontal" Spacing="4" Margin="0,6,0,0">
+                <TextBox Text="{Binding EditClassName}" Width="160" />
+                <Button Content="Rename" Command="{Binding RenameClassCommand}" />
+            </StackPanel>
+
+            <Button Grid.Row="4" Margin="0,6,0,0" HorizontalAlignment="Stretch" HorizontalContentAlignment="Center"
+                    Content="{Binding SelectedClass.IsActive, Converter={x:Static conv:BoolToActiveLabelConverter.Instance}}"
+                    Command="{Binding ToggleClassActiveCommand}" />
+        </Grid>
+
+        <!-- Enrollment -->
+        <Grid Grid.Column="2" RowDefinitions="Auto,*">
+            <TextBlock Grid.Row="0" FontWeight="Bold" FontSize="14" Margin="0,0,0,6">
+                <Run Text="Enrollment — " />
+                <Run Text="{Binding SelectedClass.Name}" />
+            </TextBlock>
+
+            <ListBox Grid.Row="1" ItemsSource="{Binding EnrollmentsForSelectedClass}">
+                <ListBox.ItemTemplate>
+                    <DataTemplate x:DataType="vm:EnrollmentRowViewModel">
+                        <CheckBox Content="{Binding StudentName}" IsChecked="{Binding IsEnrolled}" />
+                    </DataTemplate>
+                </ListBox.ItemTemplate>
+            </ListBox>
+        </Grid>
+    </Grid>
+</UserControl>

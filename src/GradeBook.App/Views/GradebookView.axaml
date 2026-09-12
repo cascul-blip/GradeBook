@@ -1,0 +1,36 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:GradeBook.App.ViewModels"
+             xmlns:model="using:GradeBook.Core.Models"
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006"
+             mc:Ignorable="d" d:DesignWidth="1000" d:DesignHeight="600"
+             x:Class="GradeBook.App.Views.GradebookView"
+             x:DataType="vm:GradebookViewModel">
+
+    <Grid RowDefinitions="Auto,Auto,*" Margin="12" RowSpacing="8">
+
+        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="Class:" VerticalAlignment="Center" />
+            <ComboBox Width="180" ItemsSource="{Binding AvailableClasses}" SelectedItem="{Binding SelectedClass}">
+                <ComboBox.ItemTemplate>
+                    <DataTemplate x:DataType="model:SchoolClass">
+                        <TextBlock Text="{Binding Name}" />
+                    </DataTemplate>
+                </ComboBox.ItemTemplate>
+            </ComboBox>
+
+            <TextBlock Text="Quarter:" VerticalAlignment="Center" Margin="16,0,0,0" />
+            <ComboBox Width="100" ItemsSource="{Binding Quarters, Mode=OneTime}" SelectedItem="{Binding SelectedQuarter}" />
+        </StackPanel>
+
+        <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
+            <TextBox Text="{Binding NewAssignmentName}" PlaceholderText="Assignment name" Width="200" />
+            <TextBox Text="{Binding NewAssignmentPoints}" PlaceholderText="Points" Width="80" />
+            <Button Content="Add Assignment" Command="{Binding AddAssignmentCommand}" />
+            <TextBlock Text="{Binding StatusMessage}" Foreground="Red" VerticalAlignment="Center" />
+        </StackPanel>
+
+        <DataGrid Grid.Row="2" Name="GradeGrid" ItemsSource="{Binding Rows}" AutoGenerateColumns="False" IsReadOnly="False" />
+    </Grid>
+</UserControl>
