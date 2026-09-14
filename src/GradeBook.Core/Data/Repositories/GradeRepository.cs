@@ -6,7 +6,7 @@ namespace GradeBook.Core.Data.Repositories;
 public sealed class GradeRepository(SqliteConnectionFactory connectionFactory) : IGradeRepository
 {
     private const string SelectRecordsSql = """
-        SELECT g.StudentId, a.ClassId, g.AssignmentId, a.Name, a.Quarter, g.Score, a.PointsPossible, g.Status
+        SELECT g.StudentId, a.ClassId, g.AssignmentId, a.Name, a.DateCreated, a.Quarter, g.Score, a.PointsPossible, g.Status
         FROM Grades g
         JOIN Assignments a ON a.Id = g.AssignmentId
         """;
@@ -111,10 +111,11 @@ public sealed class GradeRepository(SqliteConnectionFactory connectionFactory) :
                 ClassId: reader.GetInt32(1),
                 AssignmentId: reader.GetInt32(2),
                 AssignmentName: reader.GetString(3),
-                Quarter: (Quarter)reader.GetInt32(4),
-                Score: reader.GetDecimal(5),
-                PointsPossible: reader.GetDecimal(6),
-                Status: (GradeStatus)reader.GetInt32(7)));
+                AssignmentDate: DateTime.Parse(reader.GetString(4)),
+                Quarter: (Quarter)reader.GetInt32(5),
+                Score: reader.GetDecimal(6),
+                PointsPossible: reader.GetDecimal(7),
+                Status: (GradeStatus)reader.GetInt32(8)));
         }
 
         return records;

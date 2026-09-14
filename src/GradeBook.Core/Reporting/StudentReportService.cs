@@ -40,12 +40,13 @@ public sealed class StudentReportService(
             var breakdown = periodResult.QuarterBreakdown
                 .Select(q => new QuarterBreakdownEntry(ReportPeriodQuarters.Label(q.Quarter), q.Percentage))
                 .ToList();
-            var missingNames = classRecords
+            var missingAssignments = classRecords
                 .Where(r => r.Status == GradeStatus.Uncompleted)
-                .Select(r => r.AssignmentName)
+                .OrderBy(r => r.AssignmentDate)
+                .Select(r => new MissingAssignmentEntry(r.AssignmentName, r.AssignmentDate))
                 .ToList();
 
-            results.Add(new StudentClassResult(schoolClass.Name, periodResult.Percentage, missingNames, breakdown));
+            results.Add(new StudentClassResult(schoolClass.Name, periodResult.Percentage, missingAssignments, breakdown));
         }
 
         results = results.OrderBy(r => r.ClassName, StringComparer.OrdinalIgnoreCase).ToList();

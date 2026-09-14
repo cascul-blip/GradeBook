@@ -53,8 +53,8 @@ public sealed class StudentReportPdfDocument(StudentReportData data) : IDocument
                             inner.Item().PaddingTop(2).Text(breakdownText).FontSize(9).FontColor(Colors.Grey.Darken1);
                         }
 
-                        var missingText = classResult.UncompletedAssignmentNames.Count > 0
-                            ? $"Missing: {string.Join(", ", classResult.UncompletedAssignmentNames)}"
+                        var missingText = classResult.MissingAssignments.Count > 0
+                            ? $"Missing: {string.Join(", ", classResult.MissingAssignments.Select(MissingAssignmentLabel))}"
                             : "Missing: None";
                         inner.Item().PaddingTop(2).Text(missingText).FontSize(9.5f);
                     });
@@ -62,4 +62,7 @@ public sealed class StudentReportPdfDocument(StudentReportData data) : IDocument
             });
         });
     }
+
+    private static string MissingAssignmentLabel(MissingAssignmentEntry entry) =>
+        $"{entry.AssignmentName} ({ReportLabels.AssignmentDateLabel(entry.AssignmentDate)})";
 }

@@ -128,7 +128,7 @@ public partial class ReportsViewModel(
                 StudentReportRows.Add(new StudentReportRowDisplay(
                     result.ClassName,
                     ReportLabels.PercentLabel(result.Percentage),
-                    result.UncompletedAssignmentNames.Count > 0 ? string.Join(", ", result.UncompletedAssignmentNames) : "None",
+                    MissingDisplay(result.MissingAssignments),
                     BreakdownDisplay(result.QuarterBreakdown)));
             }
         }
@@ -136,6 +136,11 @@ public partial class ReportsViewModel(
 
     private static string BreakdownDisplay(IReadOnlyList<QuarterBreakdownEntry> breakdown) =>
         string.Join("   ", breakdown.Select(b => $"{b.QuarterLabel}: {ReportLabels.PercentLabel(b.Percentage)}"));
+
+    private static string MissingDisplay(IReadOnlyList<MissingAssignmentEntry> missingAssignments) =>
+        missingAssignments.Count > 0
+            ? string.Join("\n", missingAssignments.Select(m => $"{m.AssignmentName} ({ReportLabels.AssignmentDateLabel(m.AssignmentDate)})"))
+            : "None";
 
     [RelayCommand]
     private async Task ExportPdfAsync()

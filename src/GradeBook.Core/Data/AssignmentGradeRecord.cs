@@ -8,6 +8,7 @@ public readonly record struct AssignmentGradeRecord(
     int ClassId,
     int AssignmentId,
     string AssignmentName,
+    DateTime AssignmentDate,
     Quarter Quarter,
     decimal Score,
     decimal PointsPossible,
