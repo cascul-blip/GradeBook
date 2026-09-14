@@ -27,3 +27,9 @@ public sealed record StudentReportData(
     string StudentName,
     ReportPeriod Period,
     IReadOnlyList<StudentClassResult> ClassResults);
+
+public sealed record SummaryClassGrade(string ClassName, decimal? Percentage);
+
+public sealed record SummaryStudentEntry(string StudentName, IReadOnlyList<SummaryClassGrade> Classes);
+
+public sealed record SummaryReportData(ReportPeriod Period, IReadOnlyList<SummaryStudentEntry> Students);

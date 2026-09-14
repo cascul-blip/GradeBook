@@ -38,6 +38,7 @@ public partial class App : Application
 
             var classReportService = new ClassReportService(classRepository, studentRepository, enrollmentRepository, gradeRepository);
             var studentReportService = new StudentReportService(studentRepository, classRepository, enrollmentRepository, gradeRepository);
+            var summaryReportService = new SummaryReportService(studentRepository, studentReportService);
 
             var mainWindow = new MainWindow();
             ISaveFileDialogService saveFileDialogService = new SaveFileDialogService(() => mainWindow);
@@ -46,7 +47,7 @@ public partial class App : Application
 
             var classesAndStudentsViewModel = new ClassesAndStudentsViewModel(studentRepository, classRepository, enrollmentRepository, confirmationDialogService);
             var gradebookViewModel = new GradebookViewModel(classRepository, studentRepository, enrollmentRepository, assignmentRepository, gradeRepository);
-            var reportsViewModel = new ReportsViewModel(classRepository, studentRepository, classReportService, studentReportService, saveFileDialogService);
+            var reportsViewModel = new ReportsViewModel(classRepository, studentRepository, classReportService, studentReportService, summaryReportService, saveFileDialogService);
             var settingsViewModel = new SettingsViewModel(settingsStore, folderPickerService, confirmationDialogService);
             var mainViewModel = new MainViewModel(classesAndStudentsViewModel, gradebookViewModel, reportsViewModel, settingsViewModel);
 

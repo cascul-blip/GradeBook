@@ -14,6 +14,7 @@ public partial class ReportsViewModel(
     IStudentRepository studentRepository,
     ClassReportService classReportService,
     StudentReportService studentReportService,
+    SummaryReportService summaryReportService,
     ISaveFileDialogService saveFileDialogService) : ViewModelBase
 {
     public static IReadOnlyList<ReportPeriod> Periods { get; } =
@@ -23,12 +24,13 @@ public partial class ReportsViewModel(
     ];
 
     public static IReadOnlyList<ReportTargetType> ReportTypes { get; } =
-        [ReportTargetType.ClassReport, ReportTargetType.StudentReport];
+        [ReportTargetType.ClassReport, ReportTargetType.StudentReport, ReportTargetType.SummaryReport];
 
     public ObservableCollection<SchoolClass> Classes { get; } = [];
     public ObservableCollection<Student> Students { get; } = [];
     public ObservableCollection<ClassReportRowDisplay> ClassReportRows { get; } = [];
     public ObservableCollection<StudentReportRowDisplay> StudentReportRows { get; } = [];
+    public ObservableCollection<SummaryStudentDisplay> SummaryReportRows { get; } = [];
 
     [ObservableProperty]
     private ReportTargetType _selectedReportType = ReportTargetType.ClassReport;
@@ -94,6 +96,7 @@ public partial class ReportsViewModel(
     {
         ClassReportRows.Clear();
         StudentReportRows.Clear();
+        SummaryReportRows.Clear();
         PreviewTitle = null;
 
         if (SelectedReportType == ReportTargetType.ClassReport)
@@ -114,7 +117,7 @@ public partial class ReportsViewModel(
                     BreakdownDisplay(row.QuarterBreakdown)));
             }
         }
-        else
+        else if (SelectedReportType == ReportTargetType.StudentReport)
         {
             if (SelectedStudent is null)
             {
@@ -130,6 +133,19 @@ public partial class ReportsViewModel(
                     ReportLabels.PercentLabel(result.Percentage),
                     MissingDisplay(result.MissingAssignments),
                     BreakdownDisplay(result.QuarterBreakdown)));
+            }
+        }
+        else
+        {
+            var data = await summaryReportService.BuildReportAsync(SelectedPeriod);
+            PreviewTitle = $"Summary — {ReportLabels.PeriodLabel(data.Period)}";
+            foreach (var student in data.Students)
+            {
+                SummaryReportRows.Add(new SummaryStudentDisplay(
+                    student.StudentName,
+                    student.Classes
+                        .Select(c => new SummaryClassGradeDisplay(c.ClassName, ReportLabels.PercentLabel(c.Percentage)))
+                        .ToList()));
             }
         }
     }
@@ -171,11 +187,17 @@ public partial class ReportsViewModel(
                 document = new ClassReportPdfDocument(data);
                 suggestedFileName = $"{SanitizeFileName(data.ClassName)}-{SelectedPeriod}.pdf";
             }
-            else
+            else if (SelectedReportType == ReportTargetType.StudentReport)
             {
                 var data = await studentReportService.BuildReportAsync(SelectedStudent!.Id, SelectedPeriod);
                 document = new StudentReportPdfDocument(data);
                 suggestedFileName = $"{SanitizeFileName(data.StudentName)}-{SelectedPeriod}.pdf";
+            }
+            else
+            {
+                var data = await summaryReportService.BuildReportAsync(SelectedPeriod);
+                document = new SummaryReportPdfDocument(data);
+                suggestedFileName = $"Summary-{SelectedPeriod}.pdf";
             }
 
             var path = await saveFileDialogService.PickSaveFileAsync(suggestedFileName, "Export Report");
