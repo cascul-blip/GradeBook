@@ -87,6 +87,29 @@
                     <DataGridTextColumn Header="Quarters" Binding="{Binding QuarterBreakdownDisplay}" Width="*" />
                 </DataGrid.Columns>
             </DataGrid>
+
+            <ScrollViewer Grid.Row="1"
+                          IsVisible="{Binding SelectedReportType, Converter={x:Static oc:ObjectConverters.Equal}, ConverterParameter={x:Static vm:ReportTargetType.SummaryReport}}">
+                <ItemsControl ItemsSource="{Binding SummaryReportRows}">
+                    <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:SummaryStudentDisplay">
+                            <StackPanel Margin="0,0,0,14">
+                                <TextBlock Text="{Binding StudentName}" FontWeight="Bold" FontSize="13" Margin="0,0,0,4" />
+                                <ItemsControl ItemsSource="{Binding Classes}">
+                                    <ItemsControl.ItemTemplate>
+                                        <DataTemplate x:DataType="vm:SummaryClassGradeDisplay">
+                                            <Grid ColumnDefinitions="220,80" Margin="12,2,0,2">
+                                                <TextBlock Grid.Column="0" Text="{Binding ClassName}" />
+                                                <TextBlock Grid.Column="1" Text="{Binding GradeDisplay}" />
+                                            </Grid>
+                                        </DataTemplate>
+                                    </ItemsControl.ItemTemplate>
+                                </ItemsControl>
+                            </StackPanel>
+                        </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                </ItemsControl>
+            </ScrollViewer>
         </Grid>
     </Grid>
 </UserControl>
