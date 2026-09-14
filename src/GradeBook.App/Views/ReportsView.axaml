@@ -77,7 +77,13 @@
                 <DataGrid.Columns>
                     <DataGridTextColumn Header="Class" Binding="{Binding ClassName}" Width="160" />
                     <DataGridTextColumn Header="Grade" Binding="{Binding GradeDisplay}" Width="80" />
-                    <DataGridTextColumn Header="Missing" Binding="{Binding MissingDisplay}" Width="200" />
+                    <DataGridTemplateColumn Header="Missing" Width="220">
+                        <DataGridTemplateColumn.CellTemplate>
+                            <DataTemplate x:DataType="vm:StudentReportRowDisplay">
+                                <TextBlock Text="{Binding MissingDisplay}" TextWrapping="Wrap" Padding="4,6" />
+                            </DataTemplate>
+                        </DataGridTemplateColumn.CellTemplate>
+                    </DataGridTemplateColumn>
                     <DataGridTextColumn Header="Quarters" Binding="{Binding QuarterBreakdownDisplay}" Width="*" />
                 </DataGrid.Columns>
             </DataGrid>

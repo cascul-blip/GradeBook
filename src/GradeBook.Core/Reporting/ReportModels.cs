@@ -15,10 +15,12 @@ public sealed record ClassReportData(
     ReportPeriod Period,
     IReadOnlyList<ClassReportRow> Rows);
 
+public sealed record MissingAssignmentEntry(string AssignmentName, DateTime AssignmentDate);
+
 public sealed record StudentClassResult(
     string ClassName,
     decimal? Percentage,
-    IReadOnlyList<string> UncompletedAssignmentNames,
+    IReadOnlyList<MissingAssignmentEntry> MissingAssignments,
     IReadOnlyList<QuarterBreakdownEntry> QuarterBreakdown);
 
 public sealed record StudentReportData(
