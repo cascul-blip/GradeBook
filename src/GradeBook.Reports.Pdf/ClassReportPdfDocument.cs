@@ -13,17 +13,7 @@ public sealed class ClassReportPdfDocument(ClassReportData data) : IDocument
     {
         container.Page(page =>
         {
-            page.Size(PageSizes.A4);
-            page.Margin(36);
-            page.DefaultTextStyle(x => x.FontSize(10));
-
-            page.Header().Column(column =>
-            {
-                column.Item().Text($"Class Report — {data.ClassName} — {ReportLabels.PeriodLabel(data.Period)}")
-                    .FontSize(16).Bold();
-                column.Item().Text($"Generated {DateTime.Now:MMMM d, yyyy}")
-                    .FontSize(9).FontColor(Colors.Grey.Darken1);
-            });
+            ReportPdfLayout.ConfigurePage(page, $"Class Report — {data.ClassName} — {ReportLabels.PeriodLabel(data.Period)}");
 
             page.Content().PaddingTop(10).Table(table =>
             {
@@ -53,13 +43,13 @@ public sealed class ClassReportPdfDocument(ClassReportData data) : IDocument
 
                 foreach (var row in data.Rows)
                 {
-                    table.Cell().Element(BodyCell).Text(row.StudentName);
+                    table.Cell().Element(ReportPdfLayout.BodyCell).Text(row.StudentName);
                     foreach (var entry in row.QuarterBreakdown)
                     {
-                        table.Cell().Element(BodyCell).Text(ReportLabels.PercentLabel(entry.Percentage));
+                        table.Cell().Element(ReportPdfLayout.BodyCell).Text(ReportLabels.PercentLabel(entry.Percentage));
                     }
-                    table.Cell().Element(BodyCell).Text(ReportLabels.PercentLabel(row.Percentage));
-                    table.Cell().Element(BodyCell).Text(row.UncompletedCount.ToString());
+                    table.Cell().Element(ReportPdfLayout.BodyCell).Text(ReportLabels.PercentLabel(row.Percentage));
+                    table.Cell().Element(ReportPdfLayout.BodyCell).Text(row.UncompletedCount.ToString());
                 }
             });
         });
@@ -67,7 +57,4 @@ public sealed class ClassReportPdfDocument(ClassReportData data) : IDocument
 
     private static IContainer HeaderCell(IContainer container) =>
         container.DefaultTextStyle(x => x.Bold()).PaddingVertical(4).BorderBottom(1).BorderColor(Colors.Grey.Darken1);
-
-    private static IContainer BodyCell(IContainer container) =>
-        container.PaddingVertical(3).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2);
 }

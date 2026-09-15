@@ -9,13 +9,11 @@ public partial class GradeCellViewModel : ObservableObject
     private readonly IGradeRepository _gradeRepository;
     private bool _suppressPersist;
 
-    public GradeCellViewModel(IGradeRepository gradeRepository, int assignmentId, int studentId, string assignmentName, decimal pointsPossible, decimal score, GradeStatus status)
+    public GradeCellViewModel(IGradeRepository gradeRepository, int assignmentId, int studentId, decimal score, GradeStatus status)
     {
         _gradeRepository = gradeRepository;
         AssignmentId = assignmentId;
         StudentId = studentId;
-        AssignmentName = assignmentName;
-        PointsPossible = pointsPossible;
 
         _suppressPersist = true;
         Score = score;
@@ -25,8 +23,6 @@ public partial class GradeCellViewModel : ObservableObject
 
     public int AssignmentId { get; }
     public int StudentId { get; }
-    public string AssignmentName { get; }
-    public decimal PointsPossible { get; }
 
     public static IReadOnlyList<GradeStatus> StatusOptions { get; } =
         [GradeStatus.Uncompleted, GradeStatus.Completed, GradeStatus.Late, GradeStatus.Excused];

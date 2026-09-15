@@ -1,42 +1,19 @@
-using GradeBook.Core.Data;
 using GradeBook.Core.Data.Repositories;
 using GradeBook.Core.Models;
 using Xunit;
 
 namespace GradeBook.Core.Tests.Data;
 
-/// <summary>
-/// Uses a real temp-file SQLite database (not :memory:) because each repository call opens its own
-/// connection, and a pure :memory: database is a fresh empty instance per connection.
-/// </summary>
-public class AssignmentRepositoryTests : IDisposable
+public class AssignmentRepositoryTests : SqliteRepositoryTestBase
 {
-    private readonly string _dbPath;
-    private readonly SqliteConnectionFactory _connectionFactory;
-
-    public AssignmentRepositoryTests()
-    {
-        _dbPath = Path.Combine(Path.GetTempPath(), $"gradebook-test-{Guid.NewGuid():N}.db");
-        _connectionFactory = new SqliteConnectionFactory(_dbPath);
-        DatabaseInitializer.Initialize(_connectionFactory);
-    }
-
-    public void Dispose()
-    {
-        if (File.Exists(_dbPath))
-        {
-            File.Delete(_dbPath);
-        }
-    }
-
     [Fact]
     public async Task CreateAssignmentWithGradesAsync_PopulatesGradeForEveryActivelyEnrolledStudent_ButNotUnenrolled()
     {
-        var studentRepo = new StudentRepository(_connectionFactory);
-        var classRepo = new ClassRepository(_connectionFactory);
-        var enrollmentRepo = new EnrollmentRepository(_connectionFactory);
-        var assignmentRepo = new AssignmentRepository(_connectionFactory);
-        var gradeRepo = new GradeRepository(_connectionFactory);
+        var studentRepo = new StudentRepository(ConnectionFactory);
+        var classRepo = new ClassRepository(ConnectionFactory);
+        var enrollmentRepo = new EnrollmentRepository(ConnectionFactory);
+        var assignmentRepo = new AssignmentRepository(ConnectionFactory);
+        var gradeRepo = new GradeRepository(ConnectionFactory);
 
         var classId = await classRepo.AddAsync("Math 87");
         var micahId = await studentRepo.AddAsync("Micah");
@@ -61,11 +38,11 @@ public class AssignmentRepositoryTests : IDisposable
     [Fact]
     public async Task SetScoreAsync_AutoFlipsUncompletedToCompleted_ButLeavesManualLateOverrideAlone()
     {
-        var studentRepo = new StudentRepository(_connectionFactory);
-        var classRepo = new ClassRepository(_connectionFactory);
-        var enrollmentRepo = new EnrollmentRepository(_connectionFactory);
-        var assignmentRepo = new AssignmentRepository(_connectionFactory);
-        var gradeRepo = new GradeRepository(_connectionFactory);
+        var studentRepo = new StudentRepository(ConnectionFactory);
+        var classRepo = new ClassRepository(ConnectionFactory);
+        var enrollmentRepo = new EnrollmentRepository(ConnectionFactory);
+        var assignmentRepo = new AssignmentRepository(ConnectionFactory);
+        var gradeRepo = new GradeRepository(ConnectionFactory);
 
         var classId = await classRepo.AddAsync("Math 87");
         var studentId = await studentRepo.AddAsync("Baleigh");
@@ -87,11 +64,11 @@ public class AssignmentRepositoryTests : IDisposable
     [Fact]
     public async Task EnsureGradeRecordAsync_SelfHeals_WhenStudentEnrollsAfterAssignmentAlreadyExists()
     {
-        var studentRepo = new StudentRepository(_connectionFactory);
-        var classRepo = new ClassRepository(_connectionFactory);
-        var enrollmentRepo = new EnrollmentRepository(_connectionFactory);
-        var assignmentRepo = new AssignmentRepository(_connectionFactory);
-        var gradeRepo = new GradeRepository(_connectionFactory);
+        var studentRepo = new StudentRepository(ConnectionFactory);
+        var classRepo = new ClassRepository(ConnectionFactory);
+        var enrollmentRepo = new EnrollmentRepository(ConnectionFactory);
+        var assignmentRepo = new AssignmentRepository(ConnectionFactory);
+        var gradeRepo = new GradeRepository(ConnectionFactory);
 
         var classId = await classRepo.AddAsync("Math 87");
         var assignmentId = await assignmentRepo.CreateAssignmentWithGradesAsync(classId, Quarter.Q1, "Lesson 3", 30);
@@ -108,11 +85,11 @@ public class AssignmentRepositoryTests : IDisposable
     [Fact]
     public async Task UpdateAsync_RenamesAndRepointsAssignment_WithoutTouchingExistingGrades()
     {
-        var studentRepo = new StudentRepository(_connectionFactory);
-        var classRepo = new ClassRepository(_connectionFactory);
-        var enrollmentRepo = new EnrollmentRepository(_connectionFactory);
-        var assignmentRepo = new AssignmentRepository(_connectionFactory);
-        var gradeRepo = new GradeRepository(_connectionFactory);
+        var studentRepo = new StudentRepository(ConnectionFactory);
+        var classRepo = new ClassRepository(ConnectionFactory);
+        var enrollmentRepo = new EnrollmentRepository(ConnectionFactory);
+        var assignmentRepo = new AssignmentRepository(ConnectionFactory);
+        var gradeRepo = new GradeRepository(ConnectionFactory);
 
         var classId = await classRepo.AddAsync("Math 87");
         var studentId = await studentRepo.AddAsync("Micah");
@@ -133,11 +110,11 @@ public class AssignmentRepositoryTests : IDisposable
     [Fact]
     public async Task DeleteAsync_Assignment_CascadesToItsGrades()
     {
-        var studentRepo = new StudentRepository(_connectionFactory);
-        var classRepo = new ClassRepository(_connectionFactory);
-        var enrollmentRepo = new EnrollmentRepository(_connectionFactory);
-        var assignmentRepo = new AssignmentRepository(_connectionFactory);
-        var gradeRepo = new GradeRepository(_connectionFactory);
+        var studentRepo = new StudentRepository(ConnectionFactory);
+        var classRepo = new ClassRepository(ConnectionFactory);
+        var enrollmentRepo = new EnrollmentRepository(ConnectionFactory);
+        var assignmentRepo = new AssignmentRepository(ConnectionFactory);
+        var gradeRepo = new GradeRepository(ConnectionFactory);
 
         var classId = await classRepo.AddAsync("Math 87");
         var studentId = await studentRepo.AddAsync("Micah");
@@ -153,8 +130,8 @@ public class AssignmentRepositoryTests : IDisposable
     [Fact]
     public async Task GetForClassAndQuarterAsync_ReturnsNewestAssignmentFirst()
     {
-        var classRepo = new ClassRepository(_connectionFactory);
-        var assignmentRepo = new AssignmentRepository(_connectionFactory);
+        var classRepo = new ClassRepository(ConnectionFactory);
+        var assignmentRepo = new AssignmentRepository(ConnectionFactory);
 
         var classId = await classRepo.AddAsync("Math 87");
         var firstId = await assignmentRepo.CreateAssignmentWithGradesAsync(classId, Quarter.Q1, "Lesson 3", 30);
