@@ -58,11 +58,11 @@ public static class GradeCalculator
     }
 
     /// <summary>Averages whichever of the two quarters have a grade; a quarter with no data is dropped, not treated as 0%.</summary>
-    public static SemesterGradeResult CalculateSemesterGrade(int semesterNumber, QuarterGradeResult quarterA, QuarterGradeResult quarterB)
+    public static SemesterGradeResult CalculateSemesterGrade(QuarterGradeResult quarterA, QuarterGradeResult quarterB)
     {
         var quarters = new[] { quarterA, quarterB };
         decimal? percentage = AveragePercentages(quarters.Select(q => q.Percentage));
-        return new SemesterGradeResult(semesterNumber, quarters, percentage);
+        return new SemesterGradeResult(quarters, percentage);
     }
 
     /// <summary>Flat average of whichever of the four quarters have a grade — not a nested average of the two semesters.</summary>
@@ -104,7 +104,7 @@ public static class GradeCalculator
             {
                 var q1 = SingleQuarter(Quarter.Q1);
                 var q2 = SingleQuarter(Quarter.Q2);
-                var semester = CalculateSemesterGrade(1, q1, q2);
+                var semester = CalculateSemesterGrade(q1, q2);
                 return new PeriodGradeResult(period, semester.Percentage, q1.UncompletedCount + q2.UncompletedCount, semester.Quarters);
             }
 
@@ -112,7 +112,7 @@ public static class GradeCalculator
             {
                 var q3 = SingleQuarter(Quarter.Q3);
                 var q4 = SingleQuarter(Quarter.Q4);
-                var semester = CalculateSemesterGrade(2, q3, q4);
+                var semester = CalculateSemesterGrade(q3, q4);
                 return new PeriodGradeResult(period, semester.Percentage, q3.UncompletedCount + q4.UncompletedCount, semester.Quarters);
             }
 

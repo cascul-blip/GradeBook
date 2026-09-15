@@ -1,6 +1,5 @@
 using GradeBook.Core.Reporting;
 using QuestPDF.Fluent;
-using QuestPDF.Helpers;
 using QuestPDF.Infrastructure;
 
 namespace GradeBook.Reports.Pdf;
@@ -13,17 +12,7 @@ public sealed class StudentReportPdfDocument(StudentReportData data) : IDocument
     {
         container.Page(page =>
         {
-            page.Size(PageSizes.A4);
-            page.Margin(36);
-            page.DefaultTextStyle(x => x.FontSize(10));
-
-            page.Header().Column(column =>
-            {
-                column.Item().Text($"Student Report — {data.StudentName} — {ReportLabels.PeriodLabel(data.Period)}")
-                    .FontSize(16).Bold();
-                column.Item().Text($"Generated {DateTime.Now:MMMM d, yyyy}")
-                    .FontSize(9).FontColor(Colors.Grey.Darken1);
-            });
+            ReportPdfLayout.ConfigurePage(page, $"Student Report — {data.StudentName} — {ReportLabels.PeriodLabel(data.Period)}");
 
             page.Content().PaddingTop(10).Column(column =>
             {
@@ -50,7 +39,7 @@ public sealed class StudentReportPdfDocument(StudentReportData data) : IDocument
                         {
                             var breakdownText = string.Join("    ",
                                 classResult.QuarterBreakdown.Select(q => $"{q.QuarterLabel}: {ReportLabels.PercentLabel(q.Percentage)}"));
-                            inner.Item().PaddingTop(2).Text(breakdownText).FontSize(9).FontColor(Colors.Grey.Darken1);
+                            inner.Item().PaddingTop(2).Text(breakdownText).FontSize(9).FontColor(QuestPDF.Helpers.Colors.Grey.Darken1);
                         }
 
                         var missingText = classResult.MissingAssignments.Count > 0

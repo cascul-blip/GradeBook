@@ -156,13 +156,12 @@ public partial class GradebookViewModel(
 
         foreach (var student in activeStudents)
         {
-            var row = new GradebookRowViewModel(student.Id, student.Name);
+            var row = new GradebookRowViewModel(student.Name);
             foreach (var assignment in assignments)
             {
                 var record = records.FirstOrDefault(r => r.StudentId == student.Id && r.AssignmentId == assignment.Id);
                 row.Cells.Add(new GradeCellViewModel(
-                    gradeRepository, assignment.Id, student.Id, assignment.Name, assignment.PointsPossible,
-                    record.Score, record.Status));
+                    gradeRepository, assignment.Id, student.Id, record.Score, record.Status));
             }
 
             Rows.Add(row);

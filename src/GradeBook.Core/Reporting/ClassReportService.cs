@@ -37,7 +37,7 @@ public sealed class ClassReportService(
             }
 
             var studentRecords = records.Where(r => r.StudentId == studentId).ToList();
-            var periodResult = GradeCalculator.CalculatePeriodGrade(period, BuildGradesByQuarter(quarters, studentRecords));
+            var periodResult = GradeCalculator.CalculatePeriodGrade(period, GradeLineGrouping.ByQuarter(quarters, studentRecords));
             var breakdown = periodResult.QuarterBreakdown
                 .Select(q => new QuarterBreakdownEntry(ReportPeriodQuarters.Label(q.Quarter), q.Percentage))
                 .ToList();
@@ -48,14 +48,4 @@ public sealed class ClassReportService(
         rows = rows.OrderBy(r => r.StudentName, StringComparer.OrdinalIgnoreCase).ToList();
         return new ClassReportData(schoolClass.Name, period, rows);
     }
-
-    private static Dictionary<Quarter, IReadOnlyList<GradeLine>> BuildGradesByQuarter(
-        IReadOnlyList<Quarter> quarters,
-        List<Data.AssignmentGradeRecord> records) =>
-        quarters.ToDictionary(
-            q => q,
-            q => (IReadOnlyList<GradeLine>)records
-                .Where(r => r.Quarter == q)
-                .Select(r => new GradeLine(r.Score, r.PointsPossible, r.Status))
-                .ToList());
 }

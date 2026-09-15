@@ -118,7 +118,7 @@ public class GradeCalculatorTests
         var q1 = new QuarterGradeResult(Quarter.Q1, 90m, 0);
         var q2 = new QuarterGradeResult(Quarter.Q2, 70m, 0);
 
-        var semester = GradeCalculator.CalculateSemesterGrade(1, q1, q2);
+        var semester = GradeCalculator.CalculateSemesterGrade(q1, q2);
 
         Assert.Equal(80m, semester.Percentage);
     }
@@ -129,7 +129,7 @@ public class GradeCalculatorTests
         var q1 = new QuarterGradeResult(Quarter.Q1, 90m, 0);
         var q2 = new QuarterGradeResult(Quarter.Q2, null, 0); // e.g. Q2 hasn't started yet
 
-        var semester = GradeCalculator.CalculateSemesterGrade(1, q1, q2);
+        var semester = GradeCalculator.CalculateSemesterGrade(q1, q2);
 
         Assert.Equal(90m, semester.Percentage); // not 45m
     }
@@ -140,7 +140,7 @@ public class GradeCalculatorTests
         var q1 = new QuarterGradeResult(Quarter.Q1, null, 0);
         var q2 = new QuarterGradeResult(Quarter.Q2, null, 0);
 
-        var semester = GradeCalculator.CalculateSemesterGrade(1, q1, q2);
+        var semester = GradeCalculator.CalculateSemesterGrade(q1, q2);
 
         Assert.Null(semester.Percentage);
     }

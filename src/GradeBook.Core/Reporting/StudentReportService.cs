@@ -1,4 +1,3 @@
-using GradeBook.Core.Data;
 using GradeBook.Core.Data.Repositories;
 using GradeBook.Core.GradeCalculation;
 using GradeBook.Core.Models;
@@ -36,7 +35,7 @@ public sealed class StudentReportService(
             }
 
             var classRecords = records.Where(r => r.ClassId == classId).ToList();
-            var periodResult = GradeCalculator.CalculatePeriodGrade(period, BuildGradesByQuarter(quarters, classRecords));
+            var periodResult = GradeCalculator.CalculatePeriodGrade(period, GradeLineGrouping.ByQuarter(quarters, classRecords));
             var breakdown = periodResult.QuarterBreakdown
                 .Select(q => new QuarterBreakdownEntry(ReportPeriodQuarters.Label(q.Quarter), q.Percentage))
                 .ToList();
@@ -52,14 +51,4 @@ public sealed class StudentReportService(
         results = results.OrderBy(r => r.ClassName, StringComparer.OrdinalIgnoreCase).ToList();
         return new StudentReportData(student.Name, period, results);
     }
-
-    private static Dictionary<Quarter, IReadOnlyList<GradeLine>> BuildGradesByQuarter(
-        IReadOnlyList<Quarter> quarters,
-        List<AssignmentGradeRecord> records) =>
-        quarters.ToDictionary(
-            q => q,
-            q => (IReadOnlyList<GradeLine>)records
-                .Where(r => r.Quarter == q)
-                .Select(r => new GradeLine(r.Score, r.PointsPossible, r.Status))
-                .ToList());
 }
