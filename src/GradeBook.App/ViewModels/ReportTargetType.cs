@@ -4,5 +4,6 @@ public enum ReportTargetType
 {
     ClassReport,
     StudentReport,
-    SummaryReport
+    SummaryReport,
+    AllStudentReport
 }

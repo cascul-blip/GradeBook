@@ -24,7 +24,7 @@ public partial class ReportsViewModel(
     ];
 
     public static IReadOnlyList<ReportTargetType> ReportTypes { get; } =
-        [ReportTargetType.ClassReport, ReportTargetType.StudentReport, ReportTargetType.SummaryReport];
+        [ReportTargetType.ClassReport, ReportTargetType.StudentReport, ReportTargetType.SummaryReport, ReportTargetType.AllStudentReport];
 
     public ObservableCollection<SchoolClass> Classes { get; } = [];
     public ObservableCollection<Student> Students { get; } = [];
@@ -135,7 +135,7 @@ public partial class ReportsViewModel(
                     BreakdownDisplay(result.QuarterBreakdown)));
             }
         }
-        else
+        else if (SelectedReportType == ReportTargetType.SummaryReport)
         {
             var data = await summaryReportService.BuildReportAsync(SelectedPeriod);
             PreviewTitle = $"Summary — {ReportLabels.PeriodLabel(data.Period)}";
@@ -147,6 +147,11 @@ public partial class ReportsViewModel(
                         .Select(c => new SummaryClassGradeDisplay(c.ClassName, ReportLabels.PercentLabel(c.Percentage)))
                         .ToList()));
             }
+        }
+        else
+        {
+            // AllStudentReport is export-only — no on-screen preview to build.
+            PreviewTitle = "All Student Report — export only (use Export PDF)";
         }
     }
 
@@ -193,11 +198,17 @@ public partial class ReportsViewModel(
                 document = new StudentReportPdfDocument(data);
                 suggestedFileName = $"{SanitizeFileName(data.StudentName)}-{SelectedPeriod}.pdf";
             }
-            else
+            else if (SelectedReportType == ReportTargetType.SummaryReport)
             {
                 var data = await summaryReportService.BuildReportAsync(SelectedPeriod);
                 document = new SummaryReportPdfDocument(data);
                 suggestedFileName = $"Summary-{SelectedPeriod}.pdf";
+            }
+            else
+            {
+                var data = await summaryReportService.BuildReportAsync(SelectedPeriod);
+                document = new AllStudentReportPdfDocument(data);
+                suggestedFileName = $"AllStudents-{SelectedPeriod}.pdf";
             }
 
             var path = await saveFileDialogService.PickSaveFileAsync(suggestedFileName, "Export Report");
