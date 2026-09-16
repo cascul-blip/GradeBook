@@ -7,7 +7,7 @@
         mc:Ignorable="d" d:DesignWidth="1100" d:DesignHeight="700"
         x:Class="GradeBook.App.Views.MainWindow"
         x:DataType="vm:MainViewModel"
-        Icon="/Assets/avalonia-logo.ico"
+        Icon="/Assets/gradebook.ico"
         Title="GradeBook"
         Width="1100" Height="700">
 
