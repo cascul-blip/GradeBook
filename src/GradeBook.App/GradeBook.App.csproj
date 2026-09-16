@@ -5,6 +5,7 @@
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
     <ApplicationManifest>app.manifest</ApplicationManifest>
+    <ApplicationIcon>Assets\gradebook.ico</ApplicationIcon>
     <RuntimeIdentifiers>win-x64;linux-x64</RuntimeIdentifiers>
     <InvariantGlobalization>true</InvariantGlobalization>
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
