@@ -18,5 +18,7 @@ public static class ReportLabels
 
     public static string PercentLabel(decimal? percentage) => percentage.HasValue ? $"{percentage.Value:0.##}%" : "N/A";
 
+    public static string MissingCountLabel(int count) => $"Missing {count} lesson{(count == 1 ? "" : "s")}";
+
     public static string AssignmentDateLabel(DateTime date) => date.ToString("MMM d");
 }

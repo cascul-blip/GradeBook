@@ -16,7 +16,7 @@ public sealed class AllStudentReportPdfDocument(SummaryReportData data) : IDocum
             ReportPdfLayout.ConfigurePage(page, $"All Student Report — {ReportLabels.PeriodLabel(data.Period)}");
 
             page.Content().PaddingTop(10).Column(column =>
-                ReportPdfLayout.ComposeSummaryStudents(column, data.Students, pageBreakBetweenStudents: true));
+                ReportPdfLayout.ComposeSummaryStudents(column, data.Students, pageBreakBetweenStudents: true, showMissingCount: true));
         });
     }
 }

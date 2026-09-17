@@ -26,7 +26,7 @@ internal static class ReportPdfLayout
         container.PaddingVertical(3).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2);
 
     /// <summary>Bold name + bordered Class/Grade table per student, used by Summary and All Student reports.</summary>
-    public static void ComposeSummaryStudents(ColumnDescriptor column, IReadOnlyList<SummaryStudentEntry> students, bool pageBreakBetweenStudents)
+    public static void ComposeSummaryStudents(ColumnDescriptor column, IReadOnlyList<SummaryStudentEntry> students, bool pageBreakBetweenStudents, bool showMissingCount)
     {
         if (students.Count == 0)
         {
@@ -58,7 +58,12 @@ internal static class ReportPdfLayout
                     foreach (var classGrade in student.Classes)
                     {
                         table.Cell().Element(BodyCell).Text(classGrade.ClassName);
-                        table.Cell().Element(BodyCell).Text(ReportLabels.PercentLabel(classGrade.Percentage));
+                        var gradeText = ReportLabels.PercentLabel(classGrade.Percentage);
+                        if (showMissingCount)
+                        {
+                            gradeText += "  " + ReportLabels.MissingCountLabel(classGrade.MissingCount);
+                        }
+                        table.Cell().Element(BodyCell).Text(gradeText);
                     }
                 });
             });

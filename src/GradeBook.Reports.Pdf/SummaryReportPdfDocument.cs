@@ -15,7 +15,7 @@ public sealed class SummaryReportPdfDocument(SummaryReportData data) : IDocument
             ReportPdfLayout.ConfigurePage(page, $"Summary Report — {ReportLabels.PeriodLabel(data.Period)}");
 
             page.Content().PaddingTop(10).Column(column =>
-                ReportPdfLayout.ComposeSummaryStudents(column, data.Students, pageBreakBetweenStudents: false));
+                ReportPdfLayout.ComposeSummaryStudents(column, data.Students, pageBreakBetweenStudents: false, showMissingCount: false));
         });
     }
 }
