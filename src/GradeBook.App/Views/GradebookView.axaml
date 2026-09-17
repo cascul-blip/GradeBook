@@ -36,7 +36,7 @@
         </StackPanel>
 
         <DataGrid Grid.Row="2" Name="GradeGrid" ItemsSource="{Binding Rows}" AutoGenerateColumns="False" IsReadOnly="False"
-                  GridLinesVisibility="Horizontal" HorizontalGridLinesBrush="#40808080" RowHeight="60"
+                  GridLinesVisibility="All" HorizontalGridLinesBrush="#40808080" VerticalGridLinesBrush="#40808080" RowHeight="60"
                   FrozenColumnCount="1">
             <DataGrid.Styles>
                 <Style Selector="DataGridRow">

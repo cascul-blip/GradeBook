@@ -150,6 +150,14 @@ public partial class GradebookView : UserControl
                 }, supportsRecycling: false)
             });
         }
+
+        // Columns.Clear()/Add() don't trigger the DataGrid's internal frozen-column-state
+        // recalculation (Avalonia only recomputes it when FrozenColumnCount itself changes,
+        // a column's DisplayIndex/Visible state changes, or in narrow column-insert cases that
+        // don't apply here). Toggle it to force Avalonia to re-mark the Student column as frozen.
+        var frozenColumnCount = GradeGrid.FrozenColumnCount;
+        GradeGrid.FrozenColumnCount = 0;
+        GradeGrid.FrozenColumnCount = frozenColumnCount;
     }
 
     private void HandleTabKey(KeyEventArgs e, GradebookRowViewModel row, int columnIndex, bool isScoreBox)
