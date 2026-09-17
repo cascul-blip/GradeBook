@@ -43,7 +43,7 @@ public sealed class StudentReportPdfDocument(StudentReportData data) : IDocument
                         }
 
                         var missingText = classResult.MissingAssignments.Count > 0
-                            ? $"Missing: {string.Join(", ", classResult.MissingAssignments.Select(MissingAssignmentLabel))}"
+                            ? $"Missing: {string.Join(", ", classResult.MissingAssignments.Select(ReportLabels.MissingAssignmentLabel))}"
                             : "Missing: None";
                         inner.Item().PaddingTop(2).Text(missingText).FontSize(9.5f);
                     });
@@ -51,7 +51,4 @@ public sealed class StudentReportPdfDocument(StudentReportData data) : IDocument
             });
         });
     }
-
-    private static string MissingAssignmentLabel(MissingAssignmentEntry entry) =>
-        $"{entry.AssignmentName} ({ReportLabels.AssignmentDateLabel(entry.AssignmentDate)})";
 }

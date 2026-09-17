@@ -58,12 +58,25 @@ internal static class ReportPdfLayout
                     foreach (var classGrade in student.Classes)
                     {
                         table.Cell().Element(BodyCell).Text(classGrade.ClassName);
-                        var gradeText = ReportLabels.PercentLabel(classGrade.Percentage);
-                        if (showMissingCount)
+
+                        table.Cell().Element(BodyCell).Column(col =>
                         {
-                            gradeText += "  " + ReportLabels.MissingCountLabel(classGrade.MissingCount);
-                        }
-                        table.Cell().Element(BodyCell).Text(gradeText);
+                            var gradeText = ReportLabels.PercentLabel(classGrade.Percentage);
+                            if (showMissingCount)
+                            {
+                                gradeText += "  " + ReportLabels.MissingCountLabel(classGrade.MissingAssignments.Count);
+                            }
+                            col.Item().Text(gradeText);
+
+                            if (showMissingCount)
+                            {
+                                foreach (var missing in classGrade.MissingAssignments)
+                                {
+                                    col.Item().Text(ReportLabels.MissingAssignmentLabel(missing))
+                                        .FontSize(8.5f).FontColor(Colors.Grey.Darken1);
+                                }
+                            }
+                        });
                     }
                 });
             });

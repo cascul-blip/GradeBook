@@ -26,7 +26,7 @@ public sealed class SummaryReportService(IStudentRepository studentRepository, S
             }
 
             var classGrades = data.ClassResults
-                .Select(r => new SummaryClassGrade(r.ClassName, r.Percentage, r.MissingAssignments.Count))
+                .Select(r => new SummaryClassGrade(r.ClassName, r.Percentage, r.MissingAssignments))
                 .ToList();
             entries.Add(new SummaryStudentEntry(student.Name, classGrades));
         }
