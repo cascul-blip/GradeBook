@@ -1,0 +1,1 @@
+dotnet build Gradebook.sln -c Release
