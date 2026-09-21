@@ -140,7 +140,7 @@ public partial class GradebookView : UserControl
                     return new StackPanel
                     {
                         Spacing = 2,
-                        Margin = new Avalonia.Thickness(2),
+                        Margin = new Avalonia.Thickness(2, 4),
                         HorizontalAlignment = HorizontalAlignment.Left,
                         Children = { scoreBox, statusBox }
                     };
