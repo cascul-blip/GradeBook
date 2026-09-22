@@ -42,10 +42,19 @@ public sealed class StudentReportPdfDocument(StudentReportData data) : IDocument
                             inner.Item().PaddingTop(2).Text(breakdownText).FontSize(9).FontColor(QuestPDF.Helpers.Colors.Grey.Darken1);
                         }
 
-                        var missingText = classResult.MissingAssignments.Count > 0
-                            ? $"Missing: {string.Join(", ", classResult.MissingAssignments.Select(ReportLabels.MissingAssignmentLabel))}"
-                            : "Missing: None";
-                        inner.Item().PaddingTop(2).Text(missingText).FontSize(9.5f);
+                        if (classResult.MissingAssignments.Count > 0)
+                        {
+                            inner.Item().PaddingTop(2).Text("Missing:").FontSize(9.5f);
+                            foreach (var missing in classResult.MissingAssignments)
+                            {
+                                inner.Item().Text(ReportLabels.MissingAssignmentLabel(missing))
+                                    .FontSize(8.5f).FontColor(QuestPDF.Helpers.Colors.Black);
+                            }
+                        }
+                        else
+                        {
+                            inner.Item().PaddingTop(2).Text("Missing: None").FontSize(9.5f);
+                        }
                     });
                 }
             });

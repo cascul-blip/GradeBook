@@ -30,6 +30,16 @@ public partial class App : Application
             var connectionFactory = new SqliteConnectionFactory(databasePath);
             DatabaseInitializer.Initialize(connectionFactory);
 
+            Exception? backupError = null;
+            try
+            {
+                DatabaseBackupService.CreateDailyBackupIfNeeded(connectionFactory.DatabasePath);
+            }
+            catch (Exception ex)
+            {
+                backupError = ex;
+            }
+
             IStudentRepository studentRepository = new StudentRepository(connectionFactory);
             IClassRepository classRepository = new ClassRepository(connectionFactory);
             IEnrollmentRepository enrollmentRepository = new EnrollmentRepository(connectionFactory);
@@ -44,6 +54,14 @@ public partial class App : Application
             ISaveFileDialogService saveFileDialogService = new SaveFileDialogService(() => mainWindow);
             IConfirmationDialogService confirmationDialogService = new ConfirmationDialogService(() => mainWindow);
             IFolderPickerService folderPickerService = new FolderPickerService(() => mainWindow);
+
+            if (backupError is not null)
+            {
+                _ = confirmationDialogService.ConfirmAsync(
+                    "Backup Failed",
+                    $"Could not create today's database backup: {backupError.Message}",
+                    confirmText: "OK");
+            }
 
             var classesAndStudentsViewModel = new ClassesAndStudentsViewModel(studentRepository, classRepository, enrollmentRepository, confirmationDialogService);
             var gradebookViewModel = new GradebookViewModel(classRepository, studentRepository, enrollmentRepository, assignmentRepository, gradeRepository);
