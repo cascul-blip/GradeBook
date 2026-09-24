@@ -17,3 +17,6 @@ obj/
 
 ## Rider
 .idea/
+
+## Release output
+publish/

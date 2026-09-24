@@ -49,6 +49,10 @@ dotnet build GradeBook.sln
 dotnet run --project src/GradeBook.App/GradeBook.App.csproj
 ```
 
+## Windows release build
+
+Run `build_release.bat` on Windows. From Linux, run the `dotnet publish` command inside it with `/` in place of `\`. Either way it produces `publish\win-x64\GradeBook.App.exe`: one self-contained file that runs without installing .NET, with native libraries and PDF fonts bundled in.
+
 ## Data safety
 
 - **Daily backup:** on the first launch each day, GradeBook saves a copy of the database next to it as `MMddyy-gradebook.db`. Backups are never deleted automatically.

@@ -39,6 +39,16 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.4.2" />
   </ItemGroup>
 
+  <!--
+    SkiaSharp/HarfBuzzSharp ship ~100 MB of native debug symbols (.pdb) that would otherwise be copied
+    next to the published .exe. They're not needed to run the app, so keep them out of publish output.
+  -->
+  <Target Name="ExcludeDebugSymbolsFromPublish" AfterTargets="ComputeResolvedFilesToPublishList">
+    <ItemGroup>
+      <ResolvedFileToPublish Remove="@(ResolvedFileToPublish)" Condition="'%(Extension)' == '.pdb'" />
+    </ItemGroup>
+  </Target>
+
   <ItemGroup>
     <ProjectReference Include="..\GradeBook.Core\GradeBook.Core.csproj" />
     <ProjectReference Include="..\GradeBook.Reports.Pdf\GradeBook.Reports.Pdf.csproj" />
