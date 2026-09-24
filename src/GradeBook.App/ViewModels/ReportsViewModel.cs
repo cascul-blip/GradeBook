@@ -94,6 +94,18 @@ public partial class ReportsViewModel(
     /// <summary>Builds the same report data the PDF export uses and renders it on-screen as a live preview.</summary>
     private async Task RefreshPreviewAsync()
     {
+        try
+        {
+            await BuildPreviewAsync();
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Couldn't build the preview: {ex.Message}";
+        }
+    }
+
+    private async Task BuildPreviewAsync()
+    {
         ClassReportRows.Clear();
         StudentReportRows.Clear();
         SummaryReportRows.Clear();
@@ -217,8 +229,26 @@ public partial class ReportsViewModel(
                 return;
             }
 
-            await using var stream = File.Create(path);
-            await ReportPdfExporter.ExportAsync(document, stream);
+            // Render to a temp file and only move it into place once complete, so a failed export
+            // never leaves a half-written PDF (or clobbers a good one from an earlier export).
+            var tempPath = path + ".tmp";
+            try
+            {
+                await using (var stream = File.Create(tempPath))
+                {
+                    await ReportPdfExporter.ExportAsync(document, stream);
+                }
+
+                File.Move(tempPath, path, overwrite: true);
+            }
+            finally
+            {
+                if (File.Exists(tempPath))
+                {
+                    File.Delete(tempPath);
+                }
+            }
+
             StatusMessage = $"Exported to {path}";
         }
         catch (Exception ex)

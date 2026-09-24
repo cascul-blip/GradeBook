@@ -11,7 +11,8 @@ public partial class ClassesAndStudentsViewModel(
     IStudentRepository studentRepository,
     IClassRepository classRepository,
     IEnrollmentRepository enrollmentRepository,
-    IConfirmationDialogService confirmationDialogService) : ViewModelBase
+    IConfirmationDialogService confirmationDialogService,
+    IErrorReporter errorReporter) : ViewModelBase
 {
     public ObservableCollection<Student> Students { get; } = [];
     public ObservableCollection<SchoolClass> Classes { get; } = [];
@@ -49,7 +50,19 @@ public partial class ClassesAndStudentsViewModel(
     partial void OnSelectedClassChanged(SchoolClass? value)
     {
         EditClassName = value?.Name ?? string.Empty;
-        _ = ReloadEnrollmentsAsync();
+        _ = ReloadEnrollmentsSafelyAsync();
+    }
+
+    private async Task ReloadEnrollmentsSafelyAsync()
+    {
+        try
+        {
+            await ReloadEnrollmentsAsync();
+        }
+        catch (Exception ex)
+        {
+            await errorReporter.ReportAsync("Couldn't load the enrollment list.", ex);
+        }
     }
 
     [RelayCommand]
@@ -220,10 +233,13 @@ public partial class ClassesAndStudentsViewModel(
 
         var activeStudentIds = (await enrollmentRepository.GetActiveStudentIdsForClassAsync(SelectedClass.Id)).ToHashSet();
 
-        foreach (var student in Students.Where(s => s.IsActive))
+        // Inactive students are listed too while still enrolled, so they can be unenrolled — otherwise
+        // they'd keep being handed every new lesson with no way to stop it from here.
+        foreach (var student in Students.Where(s => s.IsActive || activeStudentIds.Contains(s.Id)))
         {
+            var label = student.IsActive ? student.Name : $"{student.Name} (inactive)";
             EnrollmentsForSelectedClass.Add(new EnrollmentRowViewModel(
-                enrollmentRepository, student.Id, student.Name, SelectedClass.Id, activeStudentIds.Contains(student.Id)));
+                enrollmentRepository, errorReporter, student.Id, label, SelectedClass.Id, activeStudentIds.Contains(student.Id)));
         }
     }
 }

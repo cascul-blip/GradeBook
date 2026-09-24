@@ -41,3 +41,21 @@ CREATE TABLE IF NOT EXISTS Grades (
     UNIQUE (AssignmentId, StudentId)
 );
 CREATE INDEX IF NOT EXISTS IX_Grades_StudentId ON Grades(StudentId);
+
+-- Last line of defence against bad grade data reaching the grade math. Triggers (unlike CHECK
+-- constraints) can be added to an existing database without rebuilding the table. Scores above
+-- PointsPossible are deliberately allowed (extra credit). CAST because a BEFORE trigger can see the
+-- bound value before column affinity converts it, and text always compares greater than a number.
+CREATE TRIGGER IF NOT EXISTS TR_Grades_Validate_Insert
+BEFORE INSERT ON Grades
+WHEN CAST(NEW.Score AS REAL) < 0 OR CAST(NEW.Status AS INTEGER) NOT IN (0, 1, 2, 3)
+BEGIN
+    SELECT RAISE(ABORT, 'Invalid grade: score must not be negative and status must be 0-3.');
+END;
+
+CREATE TRIGGER IF NOT EXISTS TR_Grades_Validate_Update
+BEFORE UPDATE OF Score, Status ON Grades
+WHEN CAST(NEW.Score AS REAL) < 0 OR CAST(NEW.Status AS INTEGER) NOT IN (0, 1, 2, 3)
+BEGIN
+    SELECT RAISE(ABORT, 'Invalid grade: score must not be negative and status must be 0-3.');
+END;

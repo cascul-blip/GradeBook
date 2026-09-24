@@ -6,5 +6,7 @@ namespace GradeBook.App.ViewModels;
 public partial class GradebookRowViewModel(string studentName) : ObservableObject
 {
     public string StudentName { get; } = studentName;
-    public ObservableCollection<GradeCellViewModel> Cells { get; } = [];
+
+    /// <summary>One entry per assignment column; null if that student has no grade row for it (shown read-only).</summary>
+    public ObservableCollection<GradeCellViewModel?> Cells { get; } = [];
 }

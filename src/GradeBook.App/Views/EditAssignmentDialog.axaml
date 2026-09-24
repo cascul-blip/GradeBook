@@ -17,6 +17,11 @@
             <TextBox Name="PointsBox" Width="240" />
         </StackPanel>
 
+        <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="Quarter:" Width="60" VerticalAlignment="Center" />
+            <ComboBox Name="QuarterBox" Width="100" />
+        </StackPanel>
+
         <TextBlock Name="ErrorText" Foreground="Red" TextWrapping="Wrap" IsVisible="False" />
 
         <Grid ColumnDefinitions="Auto,*,Auto,Auto">

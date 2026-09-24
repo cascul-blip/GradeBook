@@ -26,6 +26,9 @@ public sealed class AppSettingsStore
         _settingsFilePath = Path.Combine(gradeBookDir, "settings.json");
     }
 
+    public string SettingsFilePath => _settingsFilePath;
+
+    /// <summary>Throws InvalidDataException (rather than a raw JsonException) if the file exists but is damaged.</summary>
     public AppSettings Load()
     {
         if (!File.Exists(_settingsFilePath))
@@ -34,12 +37,30 @@ public sealed class AppSettingsStore
         }
 
         var json = File.ReadAllText(_settingsFilePath);
-        return JsonSerializer.Deserialize(json, AppSettingsJsonContext.Default.AppSettings) ?? new AppSettings();
+        try
+        {
+            return JsonSerializer.Deserialize(json, AppSettingsJsonContext.Default.AppSettings) ?? new AppSettings();
+        }
+        catch (JsonException ex)
+        {
+            throw new InvalidDataException($"The settings file '{_settingsFilePath}' is damaged: {ex.Message}", ex);
+        }
     }
 
+    /// <summary>Written to a temp file and renamed into place, so a crash mid-save can't leave a half-written settings file.</summary>
     public void Save(AppSettings settings)
     {
         var json = JsonSerializer.Serialize(settings, AppSettingsJsonContext.Default.AppSettings);
-        File.WriteAllText(_settingsFilePath, json);
+        var tempPath = _settingsFilePath + ".tmp";
+        File.WriteAllText(tempPath, json);
+        File.Move(tempPath, _settingsFilePath, overwrite: true);
+    }
+
+    /// <summary>Loads, applies a change, and saves — so updating one setting never drops the others.</summary>
+    public void Update(Action<AppSettings> change)
+    {
+        var settings = Load();
+        change(settings);
+        Save(settings);
     }
 }

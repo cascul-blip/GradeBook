@@ -13,7 +13,8 @@
         <TextBlock Text="Database Location" FontWeight="Bold" Margin="0,10,0,0" />
         <TextBlock TextWrapping="Wrap" Foreground="Gray" FontSize="11">
             Point this at a folder that syncs between your computers (e.g. Nextcloud) to keep grades
-            up to date no matter where you run GradeBook.
+            up to date no matter where you run GradeBook. Close GradeBook when you're done so the other
+            computer gets your changes — GradeBook warns you if it's still open somewhere else.
         </TextBlock>
 
         <TextBox Text="{Binding CurrentDatabasePath}" IsReadOnly="True" />

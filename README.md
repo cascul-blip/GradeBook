@@ -49,6 +49,14 @@ dotnet build GradeBook.sln
 dotnet run --project src/GradeBook.App/GradeBook.App.csproj
 ```
 
+## Data safety
+
+- **Daily backup:** on the first launch each day, GradeBook saves a copy of the database next to it as `MMddyy-gradebook.db`. Backups are never deleted automatically.
+- **Integrity check:** at startup the database is checked. If it's damaged, GradeBook closes without changing it and tells you where the newest backup is.
+- **Open on another computer:** a `gradebook.db.lock` file sits next to the database while GradeBook is running. If another computer has it open, you're warned before anything changes.
+- **Sync conflicts:** if the sync client left a `gradebook (conflicted copy …).db` in the folder, GradeBook lists it at startup. Such a copy may hold grades that aren't in the main file.
+- **Errors:** failed saves are never silent. They show a message, and details go to `error.log` in the GradeBook application-data folder (`%AppData%\GradeBook` on Windows, `~/.config/GradeBook` on Linux).
+
 ## Running tests
 ```sh
 dotnet test

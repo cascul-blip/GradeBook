@@ -31,7 +31,7 @@
                     <KeyBinding Gesture="Enter" Command="{Binding AddAssignmentCommand}" />
                 </TextBox.KeyBindings>
             </TextBox>
-            <Button Content="Add Assignment" Command="{Binding AddAssignmentCommand}" />
+            <Button Content="{Binding AddAssignmentButtonText}" Command="{Binding AddAssignmentCommand}" />
             <TextBlock Text="{Binding StatusMessage}" Foreground="Red" VerticalAlignment="Center" />
         </StackPanel>
 

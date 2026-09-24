@@ -91,15 +91,19 @@ public sealed class AssignmentRepository(SqliteConnectionFactory connectionFacto
         return assignmentId;
     }
 
-    public async Task UpdateAsync(int id, string name, decimal pointsPossible)
+    public async Task UpdateAsync(int id, string name, decimal pointsPossible, Quarter quarter)
     {
         using var connection = connectionFactory.CreateOpenConnection();
         using var command = connection.CreateCommand();
-        command.CommandText = "UPDATE Assignments SET Name = $name, PointsPossible = $points WHERE Id = $id;";
+        command.CommandText = "UPDATE Assignments SET Name = $name, PointsPossible = $points, Quarter = $quarter WHERE Id = $id;";
         command.Parameters.AddWithValue("$name", name);
         command.Parameters.AddWithValue("$points", pointsPossible);
+        command.Parameters.AddWithValue("$quarter", (int)quarter);
         command.Parameters.AddWithValue("$id", id);
-        await command.ExecuteNonQueryAsync();
+        if (await command.ExecuteNonQueryAsync() != 1)
+        {
+            throw new InvalidOperationException($"Assignment {id} no longer exists, so the change wasn't saved.");
+        }
     }
 
     public async Task DeleteAsync(int id)
@@ -118,6 +122,6 @@ public sealed class AssignmentRepository(SqliteConnectionFactory connectionFacto
         Quarter = (Quarter)reader.GetInt32(2),
         Name = reader.GetString(3),
         PointsPossible = reader.GetDecimal(4),
-        DateCreated = DateTime.Parse(reader.GetString(5))
+        DateCreated = SqliteDates.ParseUtcToLocal(reader.GetString(5))
     };
 }

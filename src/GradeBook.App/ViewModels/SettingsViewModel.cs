@@ -7,6 +7,8 @@ namespace GradeBook.App.ViewModels;
 
 public partial class SettingsViewModel(
     AppSettingsStore settingsStore,
+    string activeDatabasePath,
+    Action requestShutdown,
     IFolderPickerService folderPickerService,
     IConfirmationDialogService confirmationDialogService) : ViewModelBase
 {
@@ -16,11 +18,8 @@ public partial class SettingsViewModel(
     [ObservableProperty]
     private string? _statusMessage;
 
-    public void Initialize()
-    {
-        var settings = settingsStore.Load();
-        CurrentDatabasePath = settings.DatabasePath ?? SqliteConnectionFactory.ResolveDefaultDatabasePath();
-    }
+    /// <summary>Shows the database actually open right now (not just what settings.json says).</summary>
+    public void Initialize() => CurrentDatabasePath = activeDatabasePath;
 
     [RelayCommand]
     private async Task ChooseFolderAsync()
@@ -34,21 +33,60 @@ public partial class SettingsViewModel(
         }
 
         var newDatabasePath = Path.Combine(folder, "gradebook.db");
+        if (string.Equals(Path.GetFullPath(newDatabasePath), Path.GetFullPath(CurrentDatabasePath), StringComparison.OrdinalIgnoreCase))
+        {
+            StatusMessage = "That folder already holds the gradebook in use.";
+            return;
+        }
 
-        if (!File.Exists(newDatabasePath) && File.Exists(CurrentDatabasePath))
+        if (File.Exists(newDatabasePath))
+        {
+            // Switching to a different existing file isn't data loss, but it looks like it if it happens silently.
+            var switchToExisting = await confirmationDialogService.ConfirmAsync(
+                "Use Existing Gradebook?",
+                $"That folder already has a gradebook.db (last changed {File.GetLastWriteTime(newDatabasePath):g}). " +
+                $"GradeBook will switch to that file. Your current data stays where it is, at {CurrentDatabasePath}.",
+                confirmText: "Switch");
+            if (!switchToExisting)
+            {
+                return;
+            }
+        }
+        else if (File.Exists(CurrentDatabasePath))
         {
             var copyExisting = await confirmationDialogService.ConfirmAsync(
                 "Copy Existing Data?",
                 "No gradebook.db was found in that folder. Copy your current data there now, so it isn't left behind?",
-                confirmText: "Copy");
+                confirmText: "Copy",
+                cancelText: "Start Empty");
             if (copyExisting)
             {
-                File.Copy(CurrentDatabasePath, newDatabasePath);
+                try
+                {
+                    DatabaseBackupService.CopyDatabase(CurrentDatabasePath, newDatabasePath);
+                }
+                catch (Exception ex)
+                {
+                    StatusMessage = $"Couldn't copy the data, so nothing was changed: {ex.Message}";
+                    return;
+                }
             }
         }
 
-        settingsStore.Save(new AppSettings { DatabasePath = newDatabasePath });
-        CurrentDatabasePath = newDatabasePath;
-        StatusMessage = "Saved. Restart GradeBook for this change to take effect.";
+        try
+        {
+            settingsStore.Update(s => s.DatabasePath = newDatabasePath);
+        }
+        catch (Exception ex)
+        {
+            StatusMessage = $"Couldn't save the setting, so nothing was changed: {ex.Message}";
+            return;
+        }
+
+        // Close straight away: if GradeBook kept running, further edits would keep going to the old file.
+        await confirmationDialogService.ShowMessageAsync(
+            "Restart Needed",
+            $"GradeBook will now close. Open it again to use the gradebook at {newDatabasePath}.");
+        requestShutdown();
     }
 }

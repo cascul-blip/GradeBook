@@ -5,6 +5,9 @@ namespace GradeBook.Core.Data;
 /// <summary>
 /// Resolves the gradebook database file to an OS-appropriate application-data directory
 /// (not next to the executable) and opens connections against it with foreign keys enabled.
+/// Pooling is off so the file is only held open for the duration of each operation — the database
+/// may live in a synced folder, and a long-held handle either blocks the sync client (Windows) or
+/// keeps writing to a file the sync client has already replaced (Linux).
 /// </summary>
 public sealed class SqliteConnectionFactory
 {
@@ -16,7 +19,9 @@ public sealed class SqliteConnectionFactory
         _connectionString = new SqliteConnectionStringBuilder
         {
             DataSource = DatabasePath,
-            ForeignKeys = true
+            ForeignKeys = true,
+            Pooling = false,
+            DefaultTimeout = 10
         }.ToString();
     }
 
