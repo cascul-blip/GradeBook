@@ -2,6 +2,8 @@ using System.Collections.ObjectModel;
 using System.Globalization;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using GradeBook.App.Services;
+using GradeBook.Core.Data;
 using GradeBook.Core.Data.Repositories;
 using GradeBook.Core.Models;
 
@@ -12,7 +14,10 @@ public partial class GradebookViewModel(
     IStudentRepository studentRepository,
     IEnrollmentRepository enrollmentRepository,
     IAssignmentRepository assignmentRepository,
-    IGradeRepository gradeRepository) : ViewModelBase
+    IGradeRepository gradeRepository,
+    IConfirmationDialogService confirmationDialogService,
+    IErrorReporter errorReporter,
+    AppSettingsStore settingsStore) : ViewModelBase
 {
     public static IReadOnlyList<Quarter> Quarters { get; } = [Quarter.Q1, Quarter.Q2, Quarter.Q3, Quarter.Q4];
 
@@ -24,6 +29,7 @@ public partial class GradebookViewModel(
     private SchoolClass? _selectedClass;
 
     [ObservableProperty]
+    [NotifyPropertyChangedFor(nameof(AddAssignmentButtonText))]
     private Quarter _selectedQuarter = Quarter.Q1;
 
     [ObservableProperty]
@@ -35,7 +41,26 @@ public partial class GradebookViewModel(
     [ObservableProperty]
     private string? _statusMessage;
 
-    public Task InitializeAsync() => RefreshClassesAsync();
+    /// <summary>Names the quarter on the button itself so a lesson can't be added to the wrong quarter unnoticed.</summary>
+    public string AddAssignmentButtonText => $"Add to {SelectedQuarter}";
+
+    public Task InitializeAsync()
+    {
+        // Restore the last-used quarter (rather than always starting on Q1) so new lessons land where expected.
+        try
+        {
+            if (settingsStore.Load().LastQuarter is { } lastQuarter && Enum.IsDefined(lastQuarter))
+            {
+                SelectedQuarter = lastQuarter;
+            }
+        }
+        catch (Exception ex)
+        {
+            errorReporter.Log("Restoring the last-used quarter", ex);
+        }
+
+        return RefreshClassesAsync();
+    }
 
     /// <summary>
     /// Re-reads the class list from the database. Classes are added/renamed on the Classes &amp; Students
@@ -63,9 +88,21 @@ public partial class GradebookViewModel(
         }
     }
 
-    partial void OnSelectedClassChanged(SchoolClass? value) => _ = LoadGradebookAsync();
+    partial void OnSelectedClassChanged(SchoolClass? value) => _ = LoadGradebookSafelyAsync();
 
-    partial void OnSelectedQuarterChanged(Quarter value) => _ = LoadGradebookAsync();
+    partial void OnSelectedQuarterChanged(Quarter value)
+    {
+        try
+        {
+            settingsStore.Update(s => s.LastQuarter = value);
+        }
+        catch (Exception ex)
+        {
+            errorReporter.Log("Saving the last-used quarter", ex);
+        }
+
+        _ = LoadGradebookSafelyAsync();
+    }
 
     [RelayCommand]
     private async Task AddAssignmentAsync()
@@ -84,21 +121,61 @@ public partial class GradebookViewModel(
             return;
         }
 
-        if (!decimal.TryParse(NewAssignmentPoints, NumberStyles.Number, CultureInfo.InvariantCulture, out var points) || points <= 0)
+        if (!decimal.TryParse(NewAssignmentPoints, NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite,
+                CultureInfo.InvariantCulture, out var points) || points <= 0)
         {
             StatusMessage = "Enter a positive point value.";
             return;
         }
 
-        await assignmentRepository.CreateAssignmentWithGradesAsync(SelectedClass.Id, SelectedQuarter, NewAssignmentName.Trim(), points);
+        var name = NewAssignmentName.Trim();
+        if (Assignments.Any(a => string.Equals(a.Name.Trim(), name, StringComparison.OrdinalIgnoreCase)))
+        {
+            var addAnyway = await confirmationDialogService.ConfirmAsync(
+                "Duplicate Lesson",
+                $"\"{name}\" already exists in {SelectedClass.Name} for {SelectedQuarter}. Add a second copy anyway? " +
+                "Every student would get another lesson to complete.",
+                confirmText: "Add Anyway");
+            if (!addAnyway)
+            {
+                return;
+            }
+        }
+
+        await assignmentRepository.CreateAssignmentWithGradesAsync(SelectedClass.Id, SelectedQuarter, name, points);
         NewAssignmentName = string.Empty;
         NewAssignmentPoints = string.Empty;
         await LoadGradebookAsync();
     }
 
-    public async Task UpdateAssignmentAsync(int assignmentId, string name, decimal pointsPossible)
+    public async Task UpdateAssignmentAsync(Assignment original, string name, decimal pointsPossible, Quarter quarter)
     {
-        await assignmentRepository.UpdateAsync(assignmentId, name, pointsPossible);
+        StatusMessage = null;
+
+        if (pointsPossible < original.PointsPossible)
+        {
+            var scoresAbove = await gradeRepository.CountScoresAboveAsync(original.Id, pointsPossible);
+            if (scoresAbove > 0)
+            {
+                var saveAnyway = await confirmationDialogService.ConfirmAsync(
+                    "Scores Above New Point Value",
+                    $"{scoresAbove} student{(scoresAbove == 1 ? " has a score" : "s have scores")} above {pointsPossible:0.##} on \"{original.Name}\". " +
+                    "Their scores won't change, so they'd count as extra credit (over 100%). Save the new point value anyway?",
+                    confirmText: "Save Anyway");
+                if (!saveAnyway)
+                {
+                    StatusMessage = "Nothing was changed.";
+                    return;
+                }
+            }
+        }
+
+        await assignmentRepository.UpdateAsync(original.Id, name, pointsPossible, quarter);
+        if (quarter != original.Quarter)
+        {
+            StatusMessage = $"Moved \"{name}\" to {quarter}.";
+        }
+
         await LoadGradebookAsync();
     }
 
@@ -106,6 +183,18 @@ public partial class GradebookViewModel(
     {
         await assignmentRepository.DeleteAsync(assignmentId);
         await LoadGradebookAsync();
+    }
+
+    private async Task LoadGradebookSafelyAsync()
+    {
+        try
+        {
+            await LoadGradebookAsync();
+        }
+        catch (Exception ex)
+        {
+            await errorReporter.ReportAsync("Couldn't load the gradebook.", ex);
+        }
     }
 
     private async Task LoadGradebookAsync()
@@ -130,24 +219,10 @@ public partial class GradebookViewModel(
         var assignments = await assignmentRepository.GetForClassAndQuarterAsync(classId, quarter);
 
         // Self-heal: a student who enrolled after some assignments already existed won't have a Grade
-        // row for those yet — create the missing default rows before reading the grid back.
-        var records = await gradeRepository.GetRecordsForClassAndQuarterAsync(classId, quarter);
-        var existingPairs = records.Select(r => (r.StudentId, r.AssignmentId)).ToHashSet();
-        foreach (var student in activeStudents)
-        {
-            foreach (var assignment in assignments)
-            {
-                if (!existingPairs.Contains((student.Id, assignment.Id)))
-                {
-                    await gradeRepository.EnsureGradeRecordAsync(assignment.Id, student.Id);
-                }
-            }
-        }
-
-        if (assignments.Count > 0 && activeStudents.Count > 0)
-        {
-            records = await gradeRepository.GetRecordsForClassAndQuarterAsync(classId, quarter);
-        }
+        // row for those yet — create the missing rows (Excused for lessons from before they enrolled).
+        await gradeRepository.EnsureGradeRecordsForClassAndQuarterAsync(classId, quarter);
+        var records = (await gradeRepository.GetRecordsForClassAndQuarterAsync(classId, quarter))
+            .ToDictionary(r => (r.StudentId, r.AssignmentId));
 
         foreach (var assignment in assignments)
         {
@@ -159,9 +234,13 @@ public partial class GradebookViewModel(
             var row = new GradebookRowViewModel(student.Name);
             foreach (var assignment in assignments)
             {
-                var record = records.FirstOrDefault(r => r.StudentId == student.Id && r.AssignmentId == assignment.Id);
-                row.Cells.Add(new GradeCellViewModel(
-                    gradeRepository, assignment.Id, student.Id, record.Score, record.Status));
+                // A missing row must not become an editable cell: saves to it would update nothing.
+                row.Cells.Add(records.TryGetValue((student.Id, assignment.Id), out var record)
+                    ? new GradeCellViewModel(
+                        gradeRepository, errorReporter, LoadGradebookAsync,
+                        assignment.Id, assignment.Name, assignment.PointsPossible,
+                        student.Id, student.Name, record.Score, record.Status)
+                    : null);
             }
 
             Rows.Add(row);

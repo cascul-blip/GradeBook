@@ -1,5 +1,7 @@
 using System.Globalization;
 using Avalonia.Controls;
+using GradeBook.App.ViewModels;
+using GradeBook.Core.Models;
 
 namespace GradeBook.App.Views;
 
@@ -18,6 +20,8 @@ public partial class EditAssignmentDialog : Window
     {
         InitializeComponent();
 
+        QuarterBox.ItemsSource = GradebookViewModel.Quarters;
+
         CancelButton.Click += (_, _) => Close();
 
         SaveButton.Click += (_, _) =>
@@ -30,7 +34,7 @@ public partial class EditAssignmentDialog : Window
                 return;
             }
 
-            if (!decimal.TryParse(PointsBox.Text, NumberStyles.Number, CultureInfo.InvariantCulture, out var points) || points <= 0)
+            if (!TryParsePoints(PointsBox.Text, out var points) || points <= 0)
             {
                 ShowError("Enter a positive point value.");
                 return;
@@ -58,16 +62,22 @@ public partial class EditAssignmentDialog : Window
         ErrorText.IsVisible = true;
     }
 
-    public static async Task<(EditAssignmentDialogResult Result, string Name, decimal PointsPossible)> ShowAsync(
-        Window owner, string currentName, decimal currentPoints)
+    private static bool TryParsePoints(string? text, out decimal points) =>
+        decimal.TryParse(text, NumberStyles.AllowDecimalPoint | NumberStyles.AllowLeadingWhite | NumberStyles.AllowTrailingWhite,
+            CultureInfo.InvariantCulture, out points);
+
+    public static async Task<(EditAssignmentDialogResult Result, string Name, decimal PointsPossible, Quarter Quarter)> ShowAsync(
+        Window owner, string currentName, decimal currentPoints, Quarter currentQuarter)
     {
         var dialog = new EditAssignmentDialog();
         dialog.NameBox.Text = currentName;
-        dialog.PointsBox.Text = currentPoints.ToString(CultureInfo.InvariantCulture);
+        dialog.PointsBox.Text = currentPoints.ToString("G29", CultureInfo.InvariantCulture);
+        dialog.QuarterBox.SelectedItem = currentQuarter;
 
         await dialog.ShowDialog(owner);
 
-        decimal.TryParse(dialog.PointsBox.Text, NumberStyles.Number, CultureInfo.InvariantCulture, out var parsedPoints);
-        return (dialog._result, dialog.NameBox.Text?.Trim() ?? currentName, parsedPoints);
+        TryParsePoints(dialog.PointsBox.Text, out var parsedPoints);
+        var quarter = dialog.QuarterBox.SelectedItem is Quarter q ? q : currentQuarter;
+        return (dialog._result, dialog.NameBox.Text?.Trim() ?? currentName, parsedPoints, quarter);
     }
 }

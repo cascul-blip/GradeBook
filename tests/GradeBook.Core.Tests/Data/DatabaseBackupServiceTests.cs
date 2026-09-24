@@ -1,4 +1,5 @@
 using GradeBook.Core.Data;
+using GradeBook.Core.Data.Repositories;
 using Xunit;
 
 namespace GradeBook.Core.Tests.Data;
@@ -25,21 +26,33 @@ public class DatabaseBackupServiceTests : IDisposable
 
     private string TodaysBackupPath => Path.Combine(_directory, $"{DateTime.Now:MMddyy}-gradebook.db");
 
-    [Fact]
-    public void CreateDailyBackupIfNeeded_CreatesDatedCopy_WhenNoBackupExistsYet()
+    private async Task<SqliteConnectionFactory> CreateDatabaseWithStudentAsync(string name)
     {
-        File.WriteAllText(_databasePath, "db contents");
+        var factory = new SqliteConnectionFactory(_databasePath);
+        DatabaseInitializer.Initialize(factory);
+        await new StudentRepository(factory).AddAsync(name);
+        return factory;
+    }
+
+    [Fact]
+    public async Task CreateDailyBackupIfNeeded_CreatesDatedCopy_ThatIsAHealthyDatabaseWithTheSameData()
+    {
+        await CreateDatabaseWithStudentAsync("Micah");
 
         DatabaseBackupService.CreateDailyBackupIfNeeded(_databasePath);
 
         Assert.True(File.Exists(TodaysBackupPath));
-        Assert.Equal("db contents", File.ReadAllText(TodaysBackupPath));
+        var backup = new SqliteConnectionFactory(TodaysBackupPath);
+        Assert.Null(DatabaseInitializer.CheckIntegrity(backup));
+        var students = await new StudentRepository(backup).GetAllAsync();
+        Assert.Equal("Micah", Assert.Single(students).Name);
+        Assert.False(File.Exists(TodaysBackupPath + ".tmp"));
     }
 
     [Fact]
-    public void CreateDailyBackupIfNeeded_DoesNothing_WhenTodaysBackupAlreadyExists()
+    public async Task CreateDailyBackupIfNeeded_DoesNothing_WhenTodaysBackupAlreadyExists()
     {
-        File.WriteAllText(_databasePath, "current contents");
+        await CreateDatabaseWithStudentAsync("Micah");
         File.WriteAllText(TodaysBackupPath, "existing backup contents");
 
         DatabaseBackupService.CreateDailyBackupIfNeeded(_databasePath);
@@ -53,5 +66,30 @@ public class DatabaseBackupServiceTests : IDisposable
         DatabaseBackupService.CreateDailyBackupIfNeeded(_databasePath);
 
         Assert.False(File.Exists(TodaysBackupPath));
+    }
+
+    [Fact]
+    public async Task CopyDatabase_RefusesToOverwriteAnExistingFile()
+    {
+        await CreateDatabaseWithStudentAsync("Micah");
+        var destination = Path.Combine(_directory, "copy.db");
+        File.WriteAllText(destination, "keep me");
+
+        Assert.Throws<IOException>(() => DatabaseBackupService.CopyDatabase(_databasePath, destination));
+        Assert.Equal("keep me", File.ReadAllText(destination));
+    }
+
+    [Fact]
+    public void FindNewestBackup_ReturnsMostRecentDatedBackup_AndIgnoresOtherFiles()
+    {
+        var older = Path.Combine(_directory, "090126-gradebook.db");
+        var newer = Path.Combine(_directory, "092326-gradebook.db");
+        File.WriteAllText(older, "");
+        File.WriteAllText(newer, "");
+        File.WriteAllText(Path.Combine(_directory, "gradebook.db"), "");
+        File.SetLastWriteTimeUtc(older, DateTime.UtcNow.AddDays(-20));
+        File.SetLastWriteTimeUtc(newer, DateTime.UtcNow.AddDays(-1));
+
+        Assert.Equal(newer, DatabaseBackupService.FindNewestBackup(_databasePath));
     }
 }

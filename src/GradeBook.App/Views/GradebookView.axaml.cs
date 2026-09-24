@@ -1,12 +1,15 @@
 using System.Collections.Specialized;
+using System.Globalization;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
 using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
 using Avalonia.Layout;
+using Avalonia.Media;
 using GradeBook.App.Converters;
 using GradeBook.App.ViewModels;
+using GradeBook.Core.Models;
 
 namespace GradeBook.App.Views;
 
@@ -15,6 +18,9 @@ public partial class GradebookView : UserControl
     // Wide enough to fit the longest status option ("Uncompleted") plus the ComboBox's dropdown arrow;
     // the score box matches it so the two controls line up visually within a cell.
     private const double CellControlWidth = 120;
+
+    private static readonly IBrush InvalidScoreBrush = Brushes.Red;
+    private static readonly IBrush AboveMaxScoreBrush = Brushes.Orange;
 
     private GradebookViewModel? _subscribedViewModel;
 
@@ -81,7 +87,7 @@ public partial class GradebookView : UserControl
             // name would otherwise push it past the column's edge and get clipped.
             var headerPanel = new StackPanel { Orientation = Orientation.Horizontal, Spacing = 6 };
             var editButton = new Button { Content = "Edit", Padding = new Avalonia.Thickness(6, 0), FontSize = 10 };
-            editButton.Click += async (_, _) => await EditAssignmentAsync(viewModel, assignment.Id, assignment.Name, assignment.PointsPossible);
+            editButton.Click += async (_, _) => await EditAssignmentAsync(viewModel, assignment);
             headerPanel.Children.Add(editButton);
             headerPanel.Children.Add(new TextBlock
             {
@@ -104,7 +110,12 @@ public partial class GradebookView : UserControl
                         return new TextBlock();
                     }
 
-                    var cell = row.Cells[index];
+                    if (row.Cells[index] is not { } cell)
+                    {
+                        // No grade row for this student/lesson — show it read-only rather than as an
+                        // editable cell whose saves would go nowhere.
+                        return new TextBlock { Text = "—", Margin = new Avalonia.Thickness(8, 4) };
+                    }
 
                     var scoreBox = new TextBox { PlaceholderText = "score", Width = CellControlWidth };
                     scoreBox.Bind(TextBox.TextProperty, new Binding(nameof(GradeCellViewModel.Score))
@@ -113,14 +124,52 @@ public partial class GradebookView : UserControl
                         Mode = BindingMode.TwoWay,
                         Converter = DecimalScoreConverter.Instance
                     });
+
+                    // Red border while the text isn't a valid score (it isn't saved); amber border + tooltip
+                    // when the saved score is above the points possible (allowed as extra credit, but a
+                    // typo like 300 for 30 should stand out).
+                    void UpdateScoreIndicator()
+                    {
+                        if (!DecimalScoreConverter.TryParse(scoreBox.Text, CultureInfo.CurrentCulture, out decimal _))
+                        {
+                            scoreBox.BorderBrush = InvalidScoreBrush;
+                            ToolTip.SetTip(scoreBox, "Not a valid score — enter a whole number of 0 or more. This isn't saved.");
+                        }
+                        else if (cell.IsAboveMax)
+                        {
+                            scoreBox.BorderBrush = AboveMaxScoreBrush;
+                            ToolTip.SetTip(scoreBox, $"Above the {cell.PointsPossible:0.##} points possible — extra credit?");
+                        }
+                        else
+                        {
+                            scoreBox.ClearValue(TextBox.BorderBrushProperty);
+                            ToolTip.SetTip(scoreBox, null);
+                        }
+                    }
+
+                    scoreBox.TextChanged += (_, _) => UpdateScoreIndicator();
+                    cell.PropertyChanged += (_, e) =>
+                    {
+                        if (e.PropertyName == nameof(GradeCellViewModel.IsAboveMax))
+                        {
+                            UpdateScoreIndicator();
+                        }
+                    };
+                    UpdateScoreIndicator();
+
                     // Cleared-out score already becomes 0 in the bound value (via the converter above),
                     // but if it was already 0 that's a no-op change and the Text stays blank on screen —
-                    // so on blur, explicitly snap the display back to "0" too.
+                    // so on blur, explicitly snap the display back to "0" too. Likewise, invalid text was
+                    // never saved, so put back the saved score rather than leave the screen disagreeing with it.
                     scoreBox.LostFocus += (_, _) =>
                     {
                         if (string.IsNullOrWhiteSpace(scoreBox.Text))
                         {
                             scoreBox.Text = "0";
+                        }
+                        else if (!DecimalScoreConverter.TryParse(scoreBox.Text, CultureInfo.CurrentCulture, out decimal _))
+                        {
+                            scoreBox.Text = DecimalScoreConverter.Format(cell.Score, CultureInfo.CurrentCulture);
                         }
                     };
                     // Selecting on focus means typing immediately overwrites the value, rather than
@@ -224,22 +273,22 @@ public partial class GradebookView : UserControl
         }
     }
 
-    private async Task EditAssignmentAsync(GradebookViewModel viewModel, int assignmentId, string currentName, decimal currentPoints)
+    private async Task EditAssignmentAsync(GradebookViewModel viewModel, Assignment assignment)
     {
         if (TopLevel.GetTopLevel(this) is not Window owner)
         {
             return;
         }
 
-        var (result, name, points) = await EditAssignmentDialog.ShowAsync(owner, currentName, currentPoints);
+        var (result, name, points, quarter) = await EditAssignmentDialog.ShowAsync(owner, assignment.Name, assignment.PointsPossible, assignment.Quarter);
 
         switch (result)
         {
             case EditAssignmentDialogResult.Saved:
-                await viewModel.UpdateAssignmentAsync(assignmentId, name, points);
+                await viewModel.UpdateAssignmentAsync(assignment, name, points, quarter);
                 break;
             case EditAssignmentDialogResult.Deleted:
-                await viewModel.DeleteAssignmentAsync(assignmentId);
+                await viewModel.DeleteAssignmentAsync(assignment.Id);
                 break;
         }
     }

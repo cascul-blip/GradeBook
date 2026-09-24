@@ -62,27 +62,6 @@ public class AssignmentRepositoryTests : SqliteRepositoryTestBase
     }
 
     [Fact]
-    public async Task EnsureGradeRecordAsync_SelfHeals_WhenStudentEnrollsAfterAssignmentAlreadyExists()
-    {
-        var studentRepo = new StudentRepository(ConnectionFactory);
-        var classRepo = new ClassRepository(ConnectionFactory);
-        var enrollmentRepo = new EnrollmentRepository(ConnectionFactory);
-        var assignmentRepo = new AssignmentRepository(ConnectionFactory);
-        var gradeRepo = new GradeRepository(ConnectionFactory);
-
-        var classId = await classRepo.AddAsync("Math 87");
-        var assignmentId = await assignmentRepo.CreateAssignmentWithGradesAsync(classId, Quarter.Q1, "Lesson 3", 30);
-
-        var lateJoinerId = await studentRepo.AddAsync("LateJoiner");
-        await enrollmentRepo.EnrollAsync(lateJoinerId, classId);
-
-        await gradeRepo.EnsureGradeRecordAsync(assignmentId, lateJoinerId);
-
-        var records = await gradeRepo.GetRecordsForClassAndQuarterAsync(classId, Quarter.Q1);
-        Assert.Contains(records, r => r.StudentId == lateJoinerId && r.Score == 0 && r.Status == GradeStatus.Uncompleted);
-    }
-
-    [Fact]
     public async Task UpdateAsync_RenamesAndRepointsAssignment_WithoutTouchingExistingGrades()
     {
         var studentRepo = new StudentRepository(ConnectionFactory);
@@ -97,7 +76,7 @@ public class AssignmentRepositoryTests : SqliteRepositoryTestBase
         var assignmentId = await assignmentRepo.CreateAssignmentWithGradesAsync(classId, Quarter.Q1, "Lesson 3", 30);
         await gradeRepo.SetScoreAsync(assignmentId, studentId, 27);
 
-        await assignmentRepo.UpdateAsync(assignmentId, "Lesson 3 (Revised)", 25);
+        await assignmentRepo.UpdateAsync(assignmentId, "Lesson 3 (Revised)", 25, Quarter.Q1);
 
         var updated = await assignmentRepo.GetByIdAsync(assignmentId);
         Assert.Equal("Lesson 3 (Revised)", updated!.Name);
@@ -105,6 +84,36 @@ public class AssignmentRepositoryTests : SqliteRepositoryTestBase
 
         var record = (await gradeRepo.GetRecordsForClassAndQuarterAsync(classId, Quarter.Q1)).Single();
         Assert.Equal(27, record.Score); // the existing grade itself is untouched by an edit to the assignment
+    }
+
+    [Fact]
+    public async Task UpdateAsync_MovesAssignmentAndItsGradesToAnotherQuarter()
+    {
+        var studentRepo = new StudentRepository(ConnectionFactory);
+        var classRepo = new ClassRepository(ConnectionFactory);
+        var enrollmentRepo = new EnrollmentRepository(ConnectionFactory);
+        var assignmentRepo = new AssignmentRepository(ConnectionFactory);
+        var gradeRepo = new GradeRepository(ConnectionFactory);
+
+        var classId = await classRepo.AddAsync("Math 87");
+        var studentId = await studentRepo.AddAsync("Micah");
+        await enrollmentRepo.EnrollAsync(studentId, classId);
+        var assignmentId = await assignmentRepo.CreateAssignmentWithGradesAsync(classId, Quarter.Q1, "Lesson 3", 30);
+        await gradeRepo.SetScoreAsync(assignmentId, studentId, 27);
+
+        await assignmentRepo.UpdateAsync(assignmentId, "Lesson 3", 30, Quarter.Q2);
+
+        Assert.Empty(await gradeRepo.GetRecordsForClassAndQuarterAsync(classId, Quarter.Q1));
+        var moved = (await gradeRepo.GetRecordsForClassAndQuarterAsync(classId, Quarter.Q2)).Single();
+        Assert.Equal(27, moved.Score);
+    }
+
+    [Fact]
+    public async Task UpdateAsync_Throws_WhenAssignmentNoLongerExists()
+    {
+        var assignmentRepo = new AssignmentRepository(ConnectionFactory);
+
+        await Assert.ThrowsAsync<InvalidOperationException>(() => assignmentRepo.UpdateAsync(999, "Ghost", 10, Quarter.Q1));
     }
 
     [Fact]
