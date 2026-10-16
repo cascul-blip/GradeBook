@@ -56,6 +56,37 @@ public class DeleteProtectionTests : SqliteRepositoryTestBase
     }
 
     [Fact]
+    public async Task DeleteAsync_Student_ThrowsFriendlyError_WhenAttendanceHistoryExists()
+    {
+        var studentRepo = new StudentRepository(ConnectionFactory);
+        var attendanceRepo = new AttendanceRepository(ConnectionFactory);
+
+        var studentId = await studentRepo.AddAsync("Micah");
+        await attendanceRepo.SetAsync(studentId, Quarter.Q2, 0, 1);
+
+        var ex = await Assert.ThrowsAsync<InvalidOperationException>(() => studentRepo.DeleteAsync(studentId));
+        Assert.Contains("Deactivate", ex.Message);
+        Assert.NotNull(await studentRepo.GetByIdAsync(studentId));
+        Assert.Single(await attendanceRepo.GetForQuarterAsync(Quarter.Q2));
+    }
+
+    [Fact]
+    public async Task DeleteAsync_Student_Succeeds_WhenAttendanceIsAllZero()
+    {
+        // Counts that were entered and then cleared back to 0 aren't history worth blocking a delete over.
+        var studentRepo = new StudentRepository(ConnectionFactory);
+        var attendanceRepo = new AttendanceRepository(ConnectionFactory);
+
+        var studentId = await studentRepo.AddAsync("Micah");
+        await attendanceRepo.SetAsync(studentId, Quarter.Q1, 0, 0);
+
+        await studentRepo.DeleteAsync(studentId);
+
+        Assert.Null(await studentRepo.GetByIdAsync(studentId));
+        Assert.Empty(await attendanceRepo.GetForQuarterAsync(Quarter.Q1));
+    }
+
+    [Fact]
     public async Task DeleteAsync_Class_SucceedsWhenNoHistoryExists()
     {
         var classRepo = new ClassRepository(ConnectionFactory);

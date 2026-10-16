@@ -85,6 +85,28 @@ public sealed class StudentRepository(SqliteConnectionFactory connectionFactory)
             }
         }
 
+        // Recorded absences/tardies are history too; all-zero rows (counts entered then cleared) are not.
+        using (var attendanceCheck = connection.CreateCommand())
+        {
+            attendanceCheck.Transaction = transaction;
+            attendanceCheck.CommandText = "SELECT COUNT(*) FROM Attendance WHERE StudentId = $id AND (Absences > 0 OR Tardies > 0);";
+            attendanceCheck.Parameters.AddWithValue("$id", id);
+            var attendanceCount = (long)(await attendanceCheck.ExecuteScalarAsync() ?? 0L);
+            if (attendanceCount > 0)
+            {
+                throw new InvalidOperationException(
+                    "This student has attendance history and can't be deleted. Deactivate them instead.");
+            }
+        }
+
+        using (var deleteAttendance = connection.CreateCommand())
+        {
+            deleteAttendance.Transaction = transaction;
+            deleteAttendance.CommandText = "DELETE FROM Attendance WHERE StudentId = $id;";
+            deleteAttendance.Parameters.AddWithValue("$id", id);
+            await deleteAttendance.ExecuteNonQueryAsync();
+        }
+
         using (var deleteEnrollments = connection.CreateCommand())
         {
             deleteEnrollments.Transaction = transaction;

@@ -12,7 +12,7 @@ public interface IStudentRepository
 
     /// <summary>
     /// Permanently deletes the student. Throws <see cref="InvalidOperationException"/> if they have any
-    /// enrollment or grade history — deactivate instead of deleting a student with real data.
+    /// grade history or non-zero attendance — deactivate instead of deleting a student with real data.
     /// </summary>
     Task DeleteAsync(int id);
 }

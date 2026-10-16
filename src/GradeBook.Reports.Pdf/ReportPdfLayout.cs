@@ -25,8 +25,8 @@ internal static class ReportPdfLayout
     public static IContainer BodyCell(IContainer container) =>
         container.PaddingVertical(3).BorderBottom(0.5f).BorderColor(Colors.Grey.Lighten2);
 
-    /// <summary>Bold name + bordered Class/Grade table per student, used by Summary and All Student reports.</summary>
-    public static void ComposeSummaryStudents(ColumnDescriptor column, IReadOnlyList<SummaryStudentEntry> students, bool pageBreakBetweenStudents, bool showMissingCount)
+    /// <summary>Bold name (optionally an attendance line) + bordered Class/Grade table per student, used by Summary and All Student reports.</summary>
+    public static void ComposeSummaryStudents(ColumnDescriptor column, IReadOnlyList<SummaryStudentEntry> students, bool pageBreakBetweenStudents, bool showMissingCount, bool showAttendance)
     {
         if (students.Count == 0)
         {
@@ -46,6 +46,12 @@ internal static class ReportPdfLayout
             column.Item().Column(inner =>
             {
                 inner.Item().Text(student.StudentName).Bold().FontSize(12);
+
+                if (showAttendance)
+                {
+                    inner.Item().Text(ReportLabels.AttendanceLabel(student.Absences, student.Tardies))
+                        .FontSize(9).FontColor(Colors.Grey.Darken1);
+                }
 
                 inner.Item().PaddingTop(4).Table(table =>
                 {

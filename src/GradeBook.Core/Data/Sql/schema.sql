@@ -42,6 +42,15 @@ CREATE TABLE IF NOT EXISTS Grades (
 );
 CREATE INDEX IF NOT EXISTS IX_Grades_StudentId ON Grades(StudentId);
 
+-- Per-student, per-quarter absence and tardy totals (school-wide, not per class). A missing row means 0/0.
+CREATE TABLE IF NOT EXISTS Attendance (
+    StudentId INTEGER NOT NULL REFERENCES Students(Id) ON DELETE RESTRICT,
+    Quarter   INTEGER NOT NULL CHECK (Quarter BETWEEN 1 AND 4),
+    Absences  INTEGER NOT NULL DEFAULT 0 CHECK (Absences >= 0),
+    Tardies   INTEGER NOT NULL DEFAULT 0 CHECK (Tardies  >= 0),
+    PRIMARY KEY (StudentId, Quarter)
+);
+
 -- Last line of defence against bad grade data reaching the grade math. Triggers (unlike CHECK
 -- constraints) can be added to an existing database without rebuilding the table. Scores above
 -- PointsPossible are deliberately allowed (extra credit). CAST because a BEFORE trigger can see the

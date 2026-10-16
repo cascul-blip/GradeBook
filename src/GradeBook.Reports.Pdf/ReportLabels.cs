@@ -21,6 +21,8 @@ public static class ReportLabels
 
     public static string MissingCountLabel(int count) => $"Missing {count} lesson{(count == 1 ? "" : "s")}";
 
+    public static string AttendanceLabel(int absences, int tardies) => $"Absent: {absences}   Tardy: {tardies}";
+
     public static string AssignmentDateLabel(DateTime date) => date.ToString("MMM d");
 
     public static string MissingAssignmentLabel(MissingAssignmentEntry entry) =>

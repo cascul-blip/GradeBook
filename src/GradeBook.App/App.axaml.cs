@@ -201,6 +201,7 @@ public partial class App : Application
             IEnrollmentRepository enrollmentRepository = new EnrollmentRepository(connectionFactory);
             IAssignmentRepository assignmentRepository = new AssignmentRepository(connectionFactory);
             IGradeRepository gradeRepository = new GradeRepository(connectionFactory);
+            IAttendanceRepository attendanceRepository = new AttendanceRepository(connectionFactory);
 
             // 6. One-time cleanup of grades older versions created for lessons from before a student enrolled.
             if (!settings.PreEnrollmentReviewDone)
@@ -219,7 +220,7 @@ public partial class App : Application
             // 7. Build the UI.
             var classReportService = new ClassReportService(classRepository, studentRepository, enrollmentRepository, gradeRepository);
             var studentReportService = new StudentReportService(studentRepository, classRepository, enrollmentRepository, gradeRepository);
-            var summaryReportService = new SummaryReportService(studentRepository, studentReportService);
+            var summaryReportService = new SummaryReportService(studentRepository, studentReportService, attendanceRepository);
 
             ISaveFileDialogService saveFileDialogService = new SaveFileDialogService(() => mainWindow);
             IFolderPickerService folderPickerService = new FolderPickerService(() => mainWindow);
@@ -227,9 +228,10 @@ public partial class App : Application
             var classesAndStudentsViewModel = new ClassesAndStudentsViewModel(studentRepository, classRepository, enrollmentRepository, dialogs, errorReporter);
             var gradebookViewModel = new GradebookViewModel(
                 classRepository, studentRepository, enrollmentRepository, assignmentRepository, gradeRepository, dialogs, errorReporter, settingsStore);
+            var attendanceViewModel = new AttendanceViewModel(studentRepository, attendanceRepository, errorReporter, settingsStore);
             var reportsViewModel = new ReportsViewModel(classRepository, studentRepository, classReportService, studentReportService, summaryReportService, saveFileDialogService);
             var settingsViewModel = new SettingsViewModel(settingsStore, connectionFactory.DatabasePath, Quit, folderPickerService, dialogs);
-            var mainViewModel = new MainViewModel(classesAndStudentsViewModel, gradebookViewModel, reportsViewModel, settingsViewModel);
+            var mainViewModel = new MainViewModel(classesAndStudentsViewModel, gradebookViewModel, attendanceViewModel, reportsViewModel, settingsViewModel);
 
             mainWindow.DataContext = mainViewModel;
             await mainViewModel.InitializeAsync();
