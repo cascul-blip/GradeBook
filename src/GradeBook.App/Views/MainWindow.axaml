@@ -18,6 +18,9 @@
         <TabItem Header="Gradebook">
             <views:GradebookView DataContext="{Binding Gradebook}" />
         </TabItem>
+        <TabItem Header="Attendance">
+            <views:AttendanceView DataContext="{Binding Attendance}" />
+        </TabItem>
         <TabItem Header="Reports">
             <views:ReportsView DataContext="{Binding Reports}" />
         </TabItem>

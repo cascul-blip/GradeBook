@@ -1,20 +1,26 @@
 using GradeBook.Core.Data.Repositories;
+using GradeBook.Core.GradeCalculation;
 using GradeBook.Core.Models;
 
 namespace GradeBook.Core.Reporting;
 
 /// <summary>
 /// Builds a school-wide summary: every active student, the classes they're in, and their grade
-/// percentage in each for the selected period. Reuses StudentReportService's per-class grade
-/// calculation rather than recomputing it.
+/// percentage in each for the selected period, plus their absences and tardies summed over the period's
+/// quarters. Reuses StudentReportService's per-class grade calculation rather than recomputing it.
 /// </summary>
-public sealed class SummaryReportService(IStudentRepository studentRepository, StudentReportService studentReportService)
+public sealed class SummaryReportService(
+    IStudentRepository studentRepository,
+    StudentReportService studentReportService,
+    IAttendanceRepository attendanceRepository)
 {
     public async Task<SummaryReportData> BuildReportAsync(ReportPeriod period)
     {
         var students = (await studentRepository.GetAllAsync())
             .OrderBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
+
+        var attendance = await attendanceRepository.GetTotalsAsync(ReportPeriodQuarters.For(period));
 
         var entries = new List<SummaryStudentEntry>();
         foreach (var student in students)
@@ -28,7 +34,8 @@ public sealed class SummaryReportService(IStudentRepository studentRepository, S
             var classGrades = data.ClassResults
                 .Select(r => new SummaryClassGrade(r.ClassName, r.Percentage, r.MissingAssignments))
                 .ToList();
-            entries.Add(new SummaryStudentEntry(student.Name, classGrades));
+            var (absences, tardies) = attendance.GetValueOrDefault(student.Id);
+            entries.Add(new SummaryStudentEntry(student.Name, classGrades, absences, tardies));
         }
 
         return new SummaryReportData(period, entries);

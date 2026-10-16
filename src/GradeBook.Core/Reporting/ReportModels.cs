@@ -30,6 +30,6 @@ public sealed record StudentReportData(
 
 public sealed record SummaryClassGrade(string ClassName, decimal? Percentage, IReadOnlyList<MissingAssignmentEntry> MissingAssignments);
 
-public sealed record SummaryStudentEntry(string StudentName, IReadOnlyList<SummaryClassGrade> Classes);
+public sealed record SummaryStudentEntry(string StudentName, IReadOnlyList<SummaryClassGrade> Classes, int Absences, int Tardies);
 
 public sealed record SummaryReportData(ReportPeriod Period, IReadOnlyList<SummaryStudentEntry> Students);

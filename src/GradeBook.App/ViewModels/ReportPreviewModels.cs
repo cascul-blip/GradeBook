@@ -9,5 +9,5 @@ public sealed record StudentReportRowDisplay(string ClassName, string GradeDispl
 /// <summary>One class/grade line under a student in the on-screen summary report preview.</summary>
 public sealed record SummaryClassGradeDisplay(string ClassName, string GradeDisplay);
 
-/// <summary>One student's block (name + their classes) in the on-screen summary report preview.</summary>
-public sealed record SummaryStudentDisplay(string StudentName, IReadOnlyList<SummaryClassGradeDisplay> Classes);
+/// <summary>One student's block (name, attendance, and their classes) in the on-screen summary report preview.</summary>
+public sealed record SummaryStudentDisplay(string StudentName, string AttendanceDisplay, IReadOnlyList<SummaryClassGradeDisplay> Classes);
