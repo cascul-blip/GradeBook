@@ -59,8 +59,14 @@ public partial class AttendanceViewModel(
     private async Task LoadAsync()
     {
         var quarter = SelectedQuarter;
-        var students = await studentRepository.GetAllAsync();
         var records = (await attendanceRepository.GetForQuarterAsync(quarter)).ToDictionary(r => r.StudentId);
+
+        // Students who have left are listed only if they have counts saved for this quarter, so that
+        // history stays visible (and fixable) without the list filling up with everyone who ever left.
+        var students = (await studentRepository.GetAllAsync(includeInactive: true))
+            .Where(s => s.IsActive
+                        || (records.TryGetValue(s.Id, out var saved) && (saved.Absences > 0 || saved.Tardies > 0)))
+            .ToList();
 
         // The quarter was switched again while this load was running; let the newer load fill the list.
         if (quarter != SelectedQuarter)
@@ -74,7 +80,7 @@ public partial class AttendanceViewModel(
             records.TryGetValue(student.Id, out var record);
             Rows.Add(new AttendanceRowViewModel(
                 attendanceRepository, errorReporter, LoadAsync,
-                student.Id, student.Name, quarter, record?.Absences ?? 0, record?.Tardies ?? 0));
+                student.Id, student.IsActive ? student.Name : $"{student.Name} (inactive)", quarter, record?.Absences ?? 0, record?.Tardies ?? 0));
         }
     }
 }

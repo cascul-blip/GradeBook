@@ -98,8 +98,37 @@ public partial class ClassesAndStudentsViewModel(
             return;
         }
 
-        await studentRepository.SetActiveAsync(SelectedStudent.Id, !SelectedStudent.IsActive);
+        var student = SelectedStudent;
+        if (!student.IsActive)
+        {
+            // Reactivating doesn't re-enroll: enroll them again below, and lessons added while they were
+            // away are created Excused.
+            await studentRepository.SetActiveAsync(student.Id, true);
+            await ReloadStudentsAsync();
+            await ReloadEnrollmentsAsync();
+            return;
+        }
+
+        var classNames = (await enrollmentRepository.GetActiveClassIdsForStudentAsync(student.Id))
+            .Select(id => Classes.FirstOrDefault(c => c.Id == id)?.Name)
+            .OfType<string>()
+            .Order(StringComparer.OrdinalIgnoreCase)
+            .ToList();
+        var unenrollText = classNames.Count == 0
+            ? ""
+            : $" They'll be unenrolled from {string.Join(", ", classNames)}, so they won't get new lessons.";
+        var confirmed = await confirmationDialogService.ConfirmAsync(
+            "Deactivate Student",
+            $"Deactivate \"{student.Name}\"?{unenrollText} Their grades and attendance stay in reports.",
+            confirmText: "Deactivate");
+        if (!confirmed)
+        {
+            return;
+        }
+
+        await studentRepository.DeactivateAsync(student.Id);
         await ReloadStudentsAsync();
+        await ReloadEnrollmentsAsync();
     }
 
     [RelayCommand]
