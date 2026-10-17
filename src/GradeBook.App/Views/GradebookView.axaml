@@ -8,21 +8,41 @@
              x:Class="GradeBook.App.Views.GradebookView"
              x:DataType="vm:GradebookViewModel">
 
+    <UserControl.Resources>
+        <x:String x:Key="LateKeyTip">A late lesson keeps the score you typed. Reports subtract 10% of the points possible, rounded up. A 30 entered on a 30-point lesson counts as 27.</x:String>
+    </UserControl.Resources>
+
     <Grid RowDefinitions="Auto,Auto,*" Margin="12" RowSpacing="8">
 
-        <StackPanel Grid.Row="0" Orientation="Horizontal" Spacing="8">
-            <TextBlock Text="Class:" VerticalAlignment="Center" />
-            <ComboBox Width="180" ItemsSource="{Binding AvailableClasses}" SelectedItem="{Binding SelectedClass}">
-                <ComboBox.ItemTemplate>
-                    <DataTemplate x:DataType="model:SchoolClass">
-                        <TextBlock Text="{Binding Name}" />
-                    </DataTemplate>
-                </ComboBox.ItemTemplate>
-            </ComboBox>
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto">
+            <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="Class:" VerticalAlignment="Center" />
+                <ComboBox Width="180" ItemsSource="{Binding AvailableClasses}" SelectedItem="{Binding SelectedClass}">
+                    <ComboBox.ItemTemplate>
+                        <DataTemplate x:DataType="model:SchoolClass">
+                            <TextBlock Text="{Binding Name}" />
+                        </DataTemplate>
+                    </ComboBox.ItemTemplate>
+                </ComboBox>
 
-            <TextBlock Text="Quarter:" VerticalAlignment="Center" Margin="16,0,0,0" />
-            <ComboBox Width="100" ItemsSource="{Binding Quarters, Mode=OneTime}" SelectedItem="{Binding SelectedQuarter}" />
-        </StackPanel>
+                <TextBlock Text="Quarter:" VerticalAlignment="Center" Margin="16,0,0,0" />
+                <ComboBox Width="100" ItemsSource="{Binding Quarters, Mode=OneTime}" SelectedItem="{Binding SelectedQuarter}" />
+            </StackPanel>
+
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center" Margin="16,0,0,0">
+                <Border Padding="2,0" Background="Transparent" ToolTip.Tip="{StaticResource LateKeyTip}">
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                        <Border Width="14" Height="14" BorderBrush="DodgerBlue" BorderThickness="2" VerticalAlignment="Center"
+                                ToolTip.Tip="{StaticResource LateKeyTip}" />
+                        <TextBlock Text="Late" VerticalAlignment="Center" ToolTip.Tip="{StaticResource LateKeyTip}" />
+                    </StackPanel>
+                </Border>
+                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <Border Width="14" Height="14" BorderBrush="Orange" BorderThickness="2" VerticalAlignment="Center" />
+                    <TextBlock Text="Extra credit" VerticalAlignment="Center" />
+                </StackPanel>
+            </StackPanel>
+        </Grid>
 
         <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8">
             <TextBox Text="{Binding NewAssignmentName}" PlaceholderText="Assignment name" Width="200" />

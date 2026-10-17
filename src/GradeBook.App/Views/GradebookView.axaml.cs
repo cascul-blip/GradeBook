@@ -9,6 +9,7 @@ using Avalonia.Layout;
 using Avalonia.Media;
 using GradeBook.App.Converters;
 using GradeBook.App.ViewModels;
+using GradeBook.Core.GradeCalculation;
 using GradeBook.Core.Models;
 
 namespace GradeBook.App.Views;
@@ -21,6 +22,7 @@ public partial class GradebookView : UserControl
 
     private static readonly IBrush InvalidScoreBrush = Brushes.Red;
     private static readonly IBrush AboveMaxScoreBrush = Brushes.Orange;
+    private static readonly IBrush LateScoreBrush = Brushes.DodgerBlue;
 
     private GradebookViewModel? _subscribedViewModel;
 
@@ -125,15 +127,31 @@ public partial class GradebookView : UserControl
                         Converter = DecimalScoreConverter.Instance
                     });
 
-                    // Red border while the text isn't a valid score (it isn't saved); amber border + tooltip
-                    // when the saved score is above the points possible (allowed as extra credit, but a
-                    // typo like 300 for 30 should stand out).
+                    // Red border while the text isn't a valid score (it isn't saved). Blue border when the
+                    // lesson is late: the box still shows the typed score, and reports subtract 10% of the
+                    // points possible, rounded up. Amber border + tooltip when the saved score is above the
+                    // points possible (allowed as extra credit, but a typo like 300 for 30 should stand out).
                     void UpdateScoreIndicator()
                     {
-                        if (!DecimalScoreConverter.TryParse(scoreBox.Text, CultureInfo.CurrentCulture, out decimal _))
+                        if (!DecimalScoreConverter.TryParse(scoreBox.Text, CultureInfo.CurrentCulture, out decimal entered))
                         {
                             scoreBox.BorderBrush = InvalidScoreBrush;
                             ToolTip.SetTip(scoreBox, "Not a valid score — enter a whole number of 0 or more. This isn't saved.");
+                        }
+                        else if (cell.Status == GradeStatus.Late)
+                        {
+                            scoreBox.BorderBrush = LateScoreBrush;
+                            var penalty = GradeCalculator.CalculateLatePenalty(cell.PointsPossible);
+                            var effective = GradeCalculator.CalculateEffectiveScore(
+                                new GradeLine(entered, cell.PointsPossible, GradeStatus.Late));
+                            var tip =
+                                $"Late. Reports subtract {penalty:0.##} points (10% of {cell.PointsPossible:0.##}, rounded up). The {entered:0.##} you entered counts as {effective:0.##}. This box still shows what you entered.";
+                            if (entered > cell.PointsPossible)
+                            {
+                                tip += $" Above the {cell.PointsPossible:0.##} points possible — extra credit?";
+                            }
+
+                            ToolTip.SetTip(scoreBox, tip);
                         }
                         else if (cell.IsAboveMax)
                         {
@@ -150,7 +168,7 @@ public partial class GradebookView : UserControl
                     scoreBox.TextChanged += (_, _) => UpdateScoreIndicator();
                     cell.PropertyChanged += (_, e) =>
                     {
-                        if (e.PropertyName == nameof(GradeCellViewModel.IsAboveMax))
+                        if (e.PropertyName is nameof(GradeCellViewModel.IsAboveMax) or nameof(GradeCellViewModel.Status))
                         {
                             UpdateScoreIndicator();
                         }
