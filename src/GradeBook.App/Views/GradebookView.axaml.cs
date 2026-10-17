@@ -1,4 +1,5 @@
 using System.Collections.Specialized;
+using System.ComponentModel;
 using System.Globalization;
 using Avalonia.Controls;
 using Avalonia.Controls.Templates;
@@ -166,14 +167,14 @@ public partial class GradebookView : UserControl
                     }
 
                     scoreBox.TextChanged += (_, _) => UpdateScoreIndicator();
-                    cell.PropertyChanged += (_, e) =>
+
+                    void OnCellPropertyChanged(object? sender, PropertyChangedEventArgs e)
                     {
                         if (e.PropertyName is nameof(GradeCellViewModel.IsAboveMax) or nameof(GradeCellViewModel.Status))
                         {
                             UpdateScoreIndicator();
                         }
-                    };
-                    UpdateScoreIndicator();
+                    }
 
                     // Cleared-out score already becomes 0 in the bound value (via the converter above),
                     // but if it was already 0 that's a no-op change and the Text stays blank on screen —
@@ -198,19 +199,44 @@ public partial class GradebookView : UserControl
                     statusBox.Bind(ComboBox.SelectedItemProperty,
                         new Binding(nameof(GradeCellViewModel.Status)) { Source = cell, Mode = BindingMode.TwoWay });
 
-                    _scoreBoxes[(row, index)] = scoreBox;
-                    _statusBoxes[(row, index)] = statusBox;
-
                     scoreBox.AddHandler(KeyDownEvent, (_, e) => HandleTabKey(e, row, index, isScoreBox: true), RoutingStrategies.Tunnel);
                     statusBox.AddHandler(KeyDownEvent, (_, e) => HandleTabKey(e, row, index, isScoreBox: false), RoutingStrategies.Tunnel);
 
-                    return new StackPanel
+                    var cellPanel = new StackPanel
                     {
                         Spacing = 2,
                         Margin = new Avalonia.Thickness(2, 4),
                         HorizontalAlignment = HorizontalAlignment.Left,
                         Children = { scoreBox, statusBox }
                     };
+
+                    // Hook up to the cell view model and the Tab-order maps only while on screen. These
+                    // controls are never recycled, so a cell scrolled out of view gets new controls when it
+                    // comes back; without unsubscribing here, the long-lived cell view model would keep
+                    // every discarded control alive until the next reload. Switching tabs detaches and later
+                    // re-attaches the same controls, so attaching registers everything again.
+                    cellPanel.AttachedToVisualTree += (_, _) =>
+                    {
+                        _scoreBoxes[(row, index)] = scoreBox;
+                        _statusBoxes[(row, index)] = statusBox;
+                        cell.PropertyChanged += OnCellPropertyChanged;
+                        UpdateScoreIndicator();
+                    };
+                    cellPanel.DetachedFromVisualTree += (_, _) =>
+                    {
+                        cell.PropertyChanged -= OnCellPropertyChanged;
+                        if (_scoreBoxes.TryGetValue((row, index), out var registeredScore) && registeredScore == scoreBox)
+                        {
+                            _scoreBoxes.Remove((row, index));
+                        }
+
+                        if (_statusBoxes.TryGetValue((row, index), out var registeredStatus) && registeredStatus == statusBox)
+                        {
+                            _statusBoxes.Remove((row, index));
+                        }
+                    };
+
+                    return cellPanel;
                     // Fresh controls every time (no recycling): each cell binds to a specific GradeCellViewModel
                     // instance via an explicit Source, so a recycled control would show stale data for whatever
                     // row it got reused for. The data scale here (tens of students/assignments) makes this cheap.
