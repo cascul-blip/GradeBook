@@ -39,6 +39,10 @@ public partial class SettingsViewModel(
             return;
         }
 
+        // Set only when this attempt made the copy, so a failed settings save removes our copy and never a
+        // gradebook.db that was already in that folder.
+        var copiedThisAttempt = false;
+
         if (File.Exists(newDatabasePath))
         {
             // Switching to a different existing file isn't data loss, but it looks like it if it happens silently.
@@ -64,6 +68,7 @@ public partial class SettingsViewModel(
                 try
                 {
                     DatabaseBackupService.CopyDatabase(CurrentDatabasePath, newDatabasePath);
+                    copiedThisAttempt = true;
                 }
                 catch (Exception ex)
                 {
@@ -79,7 +84,9 @@ public partial class SettingsViewModel(
         }
         catch (Exception ex)
         {
-            StatusMessage = $"Couldn't save the setting, so nothing was changed: {ex.Message}";
+            StatusMessage = copiedThisAttempt
+                ? RemoveCopyAfterFailedSave(newDatabasePath, ex)
+                : $"Couldn't save the setting, so nothing was changed: {ex.Message}";
             return;
         }
 
@@ -88,5 +95,26 @@ public partial class SettingsViewModel(
             "Restart Needed",
             $"GradeBook will now close. Open it again to use the gradebook at {newDatabasePath}.");
         requestShutdown();
+    }
+
+    /// <summary>
+    /// The copy is a snapshot of today's data. Left behind, a later retry would find it and offer to switch
+    /// to it instead of copying again, and every grade entered in the meantime would seem to be gone.
+    /// </summary>
+    private string RemoveCopyAfterFailedSave(string copyPath, Exception saveError)
+    {
+        try
+        {
+            File.Delete(copyPath);
+        }
+        catch (Exception deleteError)
+        {
+            return $"Couldn't save the setting: {saveError.Message} GradeBook is still using {CurrentDatabasePath}. " +
+                   $"The copy at {copyPath} couldn't be removed ({deleteError.Message}). It won't get any new changes, " +
+                   "so delete it before trying again rather than switching to it.";
+        }
+
+        return $"Couldn't save the setting: {saveError.Message} The copy in the new folder was removed, " +
+               $"and GradeBook is still using {CurrentDatabasePath}.";
     }
 }
