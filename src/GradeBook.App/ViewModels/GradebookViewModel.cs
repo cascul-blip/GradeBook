@@ -21,8 +21,10 @@ public partial class GradebookViewModel(
     public static IReadOnlyList<Quarter> Quarters { get; } = [Quarter.Q1, Quarter.Q2, Quarter.Q3, Quarter.Q4];
 
     public ObservableCollection<SchoolClass> AvailableClasses { get; } = [];
-    public ObservableCollection<Assignment> Assignments { get; } = [];
-    public ObservableCollection<GradebookRowViewModel> Rows { get; } = [];
+    // Replaced in one step per load (see LoadGradebookAsync): the view rebuilds every grid column on each
+    // change to Assignments, so adding lessons one at a time would rebuild the columns once per lesson.
+    public RangeObservableCollection<Assignment> Assignments { get; } = [];
+    public RangeObservableCollection<GradebookRowViewModel> Rows { get; } = [];
 
     // What the grid currently shows, so re-selecting the same class/quarter (e.g. after the class list is
     // re-read on a tab switch, which creates new SchoolClass instances) doesn't rebuild the grid.
@@ -251,18 +253,30 @@ public partial class GradebookViewModel(
 
     private async Task LoadGradebookAsync()
     {
-        Assignments.Clear();
-        Rows.Clear();
-
         if (SelectedClass is null)
         {
+            ShowGrid([], []);
             _loadedKey = null;
             _isStale = false;
             return;
         }
 
-        var classId = SelectedClass.Id;
-        var quarter = SelectedQuarter;
+        try
+        {
+            await LoadSelectedClassAsync(SelectedClass.Id, SelectedQuarter);
+        }
+        catch
+        {
+            // Don't leave the previous grid on screen looking current after a failed load (e.g. the
+            // reload that follows a failed save, which would otherwise keep showing the unsaved value).
+            ShowGrid([], []);
+            _loadedKey = null;
+            throw;
+        }
+    }
+
+    private async Task LoadSelectedClassAsync(int classId, Quarter quarter)
+    {
 
         var activeStudents = (await studentRepository.GetActiveInClassAsync(classId))
             .OrderBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
@@ -276,11 +290,9 @@ public partial class GradebookViewModel(
         var records = (await gradeRepository.GetRecordsForClassAndQuarterAsync(classId, quarter))
             .ToDictionary(r => (r.StudentId, r.AssignmentId));
 
-        foreach (var assignment in assignments)
-        {
-            Assignments.Add(assignment);
-        }
-
+        // Build everything before touching the bound collections, so the current grid stays on screen
+        // during the database reads instead of going blank.
+        var rows = new List<GradebookRowViewModel>(activeStudents.Count);
         foreach (var student in activeStudents)
         {
             var row = new GradebookRowViewModel(student.Name);
@@ -295,10 +307,22 @@ public partial class GradebookViewModel(
                     : null);
             }
 
-            Rows.Add(row);
+            rows.Add(row);
         }
 
+        ShowGrid(assignments, rows);
         _loadedKey = (classId, quarter);
         _isStale = false;
+    }
+
+    /// <summary>
+    /// Swaps in a new grid in three single-step changes: clear the rows first so the column rebuild doesn't
+    /// realize cells for rows that are about to go, then rebuild the columns once, then add all rows at once.
+    /// </summary>
+    private void ShowGrid(IReadOnlyList<Assignment> assignments, IReadOnlyList<GradebookRowViewModel> rows)
+    {
+        Rows.ReplaceAll([]);
+        Assignments.ReplaceAll(assignments);
+        Rows.ReplaceAll(rows);
     }
 }
