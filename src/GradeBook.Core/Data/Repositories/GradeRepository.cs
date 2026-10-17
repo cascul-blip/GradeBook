@@ -86,9 +86,30 @@ public sealed class GradeRepository(SqliteConnectionFactory connectionFactory) :
         EnsureExactlyOneRow(await command.ExecuteNonQueryAsync(), assignmentId, studentId);
     }
 
-    public async Task EnsureGradeRecordsForClassAndQuarterAsync(int classId, Quarter quarter)
+    public async Task<int> EnsureGradeRecordsForClassAndQuarterAsync(int classId, Quarter quarter)
     {
         using var connection = connectionFactory.CreateOpenConnection();
+
+        // Read-only check first: this runs on every gradebook load, and nearly always nothing is missing,
+        // so don't take the write lock unless there is something to insert.
+        using (var check = connection.CreateCommand())
+        {
+            check.CommandText = """
+                SELECT EXISTS (
+                    SELECT 1
+                    FROM Assignments a
+                    JOIN Enrollments e ON e.ClassId = a.ClassId AND e.IsActive = 1
+                    WHERE a.ClassId = $classId AND a.Quarter = $quarter
+                      AND NOT EXISTS (SELECT 1 FROM Grades g WHERE g.AssignmentId = a.Id AND g.StudentId = e.StudentId));
+                """;
+            check.Parameters.AddWithValue("$classId", classId);
+            check.Parameters.AddWithValue("$quarter", (int)quarter);
+            if (Convert.ToInt64(await check.ExecuteScalarAsync()) == 0)
+            {
+                return 0;
+            }
+        }
+
         using var command = connection.CreateCommand();
         // Both dates are datetime('now') UTC text in the same format, so a text comparison orders them correctly.
         command.CommandText = """
@@ -100,7 +121,7 @@ public sealed class GradeRepository(SqliteConnectionFactory connectionFactory) :
             """;
         command.Parameters.AddWithValue("$classId", classId);
         command.Parameters.AddWithValue("$quarter", (int)quarter);
-        await command.ExecuteNonQueryAsync();
+        return await command.ExecuteNonQueryAsync();
     }
 
     public async Task<int> CountScoresAboveAsync(int assignmentId, decimal points)
