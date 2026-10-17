@@ -23,6 +23,29 @@ public sealed class StudentRepository(SqliteConnectionFactory connectionFactory)
         return students;
     }
 
+    public async Task<List<Student>> GetActiveInClassAsync(int classId)
+    {
+        using var connection = connectionFactory.CreateOpenConnection();
+        using var command = connection.CreateCommand();
+        command.CommandText = """
+            SELECT s.Id, s.Name, s.IsActive
+            FROM Students s
+            JOIN Enrollments e ON e.StudentId = s.Id AND e.IsActive = 1
+            WHERE e.ClassId = $classId
+            ORDER BY s.Name;
+            """;
+        command.Parameters.AddWithValue("$classId", classId);
+
+        var students = new List<Student>();
+        using var reader = await command.ExecuteReaderAsync();
+        while (await reader.ReadAsync())
+        {
+            students.Add(ReadStudent(reader));
+        }
+
+        return students;
+    }
+
     public async Task<Student?> GetByIdAsync(int id)
     {
         using var connection = connectionFactory.CreateOpenConnection();

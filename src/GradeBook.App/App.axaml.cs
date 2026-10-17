@@ -227,7 +227,7 @@ public partial class App : Application
 
             var classesAndStudentsViewModel = new ClassesAndStudentsViewModel(studentRepository, classRepository, enrollmentRepository, dialogs, errorReporter);
             var gradebookViewModel = new GradebookViewModel(
-                classRepository, studentRepository, enrollmentRepository, assignmentRepository, gradeRepository, dialogs, errorReporter, settingsStore);
+                classRepository, studentRepository, assignmentRepository, gradeRepository, dialogs, errorReporter, settingsStore);
             var attendanceViewModel = new AttendanceViewModel(studentRepository, attendanceRepository, errorReporter, settingsStore);
             var reportsViewModel = new ReportsViewModel(classRepository, studentRepository, classReportService, studentReportService, summaryReportService, saveFileDialogService);
             var settingsViewModel = new SettingsViewModel(settingsStore, connectionFactory.DatabasePath, Quit, folderPickerService, dialogs);

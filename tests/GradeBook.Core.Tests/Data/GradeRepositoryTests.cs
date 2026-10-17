@@ -169,6 +169,25 @@ public class GradeRepositoryTests : SqliteRepositoryTestBase
     }
 
     [Fact]
+    public async Task EnsureGradeRecords_InsertsOnlyWhatIsMissing_AndNothingOnASecondCall()
+    {
+        var classId = await _classes.AddAsync("Math 87");
+        var firstId = await _students.AddAsync("First");
+        await _enrollments.EnrollAsync(firstId, classId);
+        await _assignments.CreateAssignmentWithGradesAsync(classId, Quarter.Q1, "Lesson 1", 30);
+        await _assignments.CreateAssignmentWithGradesAsync(classId, Quarter.Q1, "Lesson 2", 30);
+
+        Assert.Equal(0, await _grades.EnsureGradeRecordsForClassAndQuarterAsync(classId, Quarter.Q1));
+
+        var lateJoinerId = await _students.AddAsync("LateJoiner");
+        await _enrollments.EnrollAsync(lateJoinerId, classId);
+
+        Assert.Equal(2, await _grades.EnsureGradeRecordsForClassAndQuarterAsync(classId, Quarter.Q1));
+        Assert.Equal(0, await _grades.EnsureGradeRecordsForClassAndQuarterAsync(classId, Quarter.Q1));
+        Assert.Equal(4, (await _grades.GetRecordsForClassAndQuarterAsync(classId, Quarter.Q1)).Count);
+    }
+
+    [Fact]
     public async Task CountScoresAboveAsync_CountsOnlyScoresAboveTheGivenPoints()
     {
         var classId = await _classes.AddAsync("Math 87");

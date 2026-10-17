@@ -27,9 +27,10 @@ public interface IGradeRepository
     /// Creates any missing grade rows for the class+quarter's currently enrolled students. Self-heals the
     /// case where a student enrolls after assignments already exist: lessons assigned before their
     /// (current) enrollment date are created Excused so they don't count against them; later ones are
-    /// created Uncompleted. Existing rows are never touched.
+    /// created Uncompleted. Existing rows are never touched. Only takes a write lock when a row is
+    /// actually missing. Returns how many rows were created.
     /// </summary>
-    Task EnsureGradeRecordsForClassAndQuarterAsync(int classId, Quarter quarter);
+    Task<int> EnsureGradeRecordsForClassAndQuarterAsync(int classId, Quarter quarter);
 
     /// <summary>How many students scored above the given point value on this assignment.</summary>
     Task<int> CountScoresAboveAsync(int assignmentId, decimal points);

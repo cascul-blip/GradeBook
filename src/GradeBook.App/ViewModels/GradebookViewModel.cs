@@ -12,7 +12,6 @@ namespace GradeBook.App.ViewModels;
 public partial class GradebookViewModel(
     IClassRepository classRepository,
     IStudentRepository studentRepository,
-    IEnrollmentRepository enrollmentRepository,
     IAssignmentRepository assignmentRepository,
     IGradeRepository gradeRepository,
     IConfirmationDialogService confirmationDialogService,
@@ -24,6 +23,17 @@ public partial class GradebookViewModel(
     public ObservableCollection<SchoolClass> AvailableClasses { get; } = [];
     public ObservableCollection<Assignment> Assignments { get; } = [];
     public ObservableCollection<GradebookRowViewModel> Rows { get; } = [];
+
+    // What the grid currently shows, so re-selecting the same class/quarter (e.g. after the class list is
+    // re-read on a tab switch, which creates new SchoolClass instances) doesn't rebuild the grid.
+    private (int ClassId, Quarter Quarter)? _loadedKey;
+
+    // Set when another tab may have changed students or enrollments, so the next visit reloads even if
+    // the class and quarter are the same.
+    private bool _isStale = true;
+
+    private bool _restoringQuarter;
+    private bool _refreshingClasses;
 
     [ObservableProperty]
     private SchoolClass? _selectedClass;
@@ -51,6 +61,7 @@ public partial class GradebookViewModel(
         {
             if (settingsStore.Load().LastQuarter is { } lastQuarter && Enum.IsDefined(lastQuarter))
             {
+                _restoringQuarter = true;
                 SelectedQuarter = lastQuarter;
             }
         }
@@ -58,50 +69,80 @@ public partial class GradebookViewModel(
         {
             errorReporter.Log("Restoring the last-used quarter", ex);
         }
+        finally
+        {
+            _restoringQuarter = false;
+        }
 
         return RefreshClassesAsync();
     }
 
+    /// <summary>Students or enrollments may have changed elsewhere; reload the grid on the next refresh.</summary>
+    public void MarkStale() => _isStale = true;
+
     /// <summary>
     /// Re-reads the class list from the database. Classes are added/renamed on the Classes &amp; Students
     /// tab, so this needs to run again whenever the Gradebook tab is shown, not just once at startup.
+    /// The grid itself only reloads if the selection changed or <see cref="MarkStale"/> was called.
     /// </summary>
     public async Task RefreshClassesAsync()
     {
         var previouslySelectedId = SelectedClass?.Id;
         var classes = await classRepository.GetAllAsync();
 
-        AvailableClasses.Clear();
-        foreach (var schoolClass in classes)
+        // Clearing the list can null the ComboBox selection, and restoring it assigns a new instance, so
+        // hold off on loading until the selection is settled, then load once if anything changed.
+        _refreshingClasses = true;
+        try
         {
-            AvailableClasses.Add(schoolClass);
+            AvailableClasses.Clear();
+            foreach (var schoolClass in classes)
+            {
+                AvailableClasses.Add(schoolClass);
+            }
+
+            var restored = AvailableClasses.FirstOrDefault(c => c.Id == previouslySelectedId);
+            if (restored is not null)
+            {
+                SelectedClass = restored;
+            }
+            else
+            {
+                SelectedClass = AvailableClasses.FirstOrDefault();
+            }
+        }
+        finally
+        {
+            _refreshingClasses = false;
         }
 
-        var restored = AvailableClasses.FirstOrDefault(c => c.Id == previouslySelectedId);
-        if (restored is not null)
+        await LoadIfNeededSafelyAsync();
+    }
+
+    partial void OnSelectedClassChanged(SchoolClass? value)
+    {
+        if (!_refreshingClasses)
         {
-            SelectedClass = restored;
-        }
-        else
-        {
-            SelectedClass = AvailableClasses.FirstOrDefault();
+            _ = LoadIfNeededSafelyAsync();
         }
     }
 
-    partial void OnSelectedClassChanged(SchoolClass? value) => _ = LoadGradebookSafelyAsync();
-
     partial void OnSelectedQuarterChanged(Quarter value)
     {
-        try
+        // Restoring the saved quarter at startup shouldn't write it straight back.
+        if (!_restoringQuarter)
         {
-            settingsStore.Update(s => s.LastQuarter = value);
-        }
-        catch (Exception ex)
-        {
-            errorReporter.Log("Saving the last-used quarter", ex);
+            try
+            {
+                settingsStore.Update(s => s.LastQuarter = value);
+            }
+            catch (Exception ex)
+            {
+                errorReporter.Log("Saving the last-used quarter", ex);
+            }
         }
 
-        _ = LoadGradebookSafelyAsync();
+        _ = LoadIfNeededSafelyAsync();
     }
 
     [RelayCommand]
@@ -185,6 +226,17 @@ public partial class GradebookViewModel(
         await LoadGradebookAsync();
     }
 
+    private Task LoadIfNeededSafelyAsync()
+    {
+        (int, Quarter)? wanted = SelectedClass is null ? null : (SelectedClass.Id, SelectedQuarter);
+        if (!_isStale && wanted == _loadedKey)
+        {
+            return Task.CompletedTask;
+        }
+
+        return LoadGradebookSafelyAsync();
+    }
+
     private async Task LoadGradebookSafelyAsync()
     {
         try
@@ -204,15 +256,15 @@ public partial class GradebookViewModel(
 
         if (SelectedClass is null)
         {
+            _loadedKey = null;
+            _isStale = false;
             return;
         }
 
         var classId = SelectedClass.Id;
         var quarter = SelectedQuarter;
 
-        var activeStudentIds = await enrollmentRepository.GetActiveStudentIdsForClassAsync(classId);
-        var activeStudents = (await studentRepository.GetAllAsync(includeInactive: true))
-            .Where(s => activeStudentIds.Contains(s.Id))
+        var activeStudents = (await studentRepository.GetActiveInClassAsync(classId))
             .OrderBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -245,5 +297,8 @@ public partial class GradebookViewModel(
 
             Rows.Add(row);
         }
+
+        _loadedKey = (classId, quarter);
+        _isStale = false;
     }
 }
