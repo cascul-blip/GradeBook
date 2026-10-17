@@ -45,7 +45,7 @@ internal static class ReportPdfLayout
 
             column.Item().Column(inner =>
             {
-                inner.Item().Text(student.StudentName).Bold().FontSize(12);
+                inner.Item().Text(ReportLabels.StudentNameLabel(student.StudentName, student.IsActive)).Bold().FontSize(12);
 
                 if (showAttendance)
                 {

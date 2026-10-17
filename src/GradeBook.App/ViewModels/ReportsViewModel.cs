@@ -154,7 +154,7 @@ public partial class ReportsViewModel(
             foreach (var student in data.Students)
             {
                 SummaryReportRows.Add(new SummaryStudentDisplay(
-                    student.StudentName,
+                    ReportLabels.StudentNameLabel(student.StudentName, student.IsActive),
                     ReportLabels.AttendanceLabel(student.Absences, student.Tardies),
                     student.Classes
                         .Select(c => new SummaryClassGradeDisplay(c.ClassName, ReportLabels.PercentLabel(c.Percentage)))

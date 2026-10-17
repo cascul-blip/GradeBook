@@ -15,6 +15,12 @@ public interface IStudentRepository
     Task SetActiveAsync(int id, bool isActive);
 
     /// <summary>
+    /// Marks the student as having left: inactive, and unenrolled from every class so they get no new
+    /// lessons. Their grades and attendance are kept and still appear in reports. Done in one transaction.
+    /// </summary>
+    Task DeactivateAsync(int id);
+
+    /// <summary>
     /// Permanently deletes the student. Throws <see cref="InvalidOperationException"/> if they have any
     /// grade history or non-zero attendance — deactivate instead of deleting a student with real data.
     /// </summary>

@@ -87,6 +87,35 @@ public sealed class StudentRepository(SqliteConnectionFactory connectionFactory)
         await command.ExecuteNonQueryAsync();
     }
 
+    public async Task DeactivateAsync(int id)
+    {
+        using var connection = connectionFactory.CreateOpenConnection();
+        using var transaction = connection.BeginTransaction();
+
+        using (var deactivate = connection.CreateCommand())
+        {
+            deactivate.Transaction = transaction;
+            deactivate.CommandText = "UPDATE Students SET IsActive = 0 WHERE Id = $id;";
+            deactivate.Parameters.AddWithValue("$id", id);
+            await deactivate.ExecuteNonQueryAsync();
+        }
+
+        // Same as EnrollmentRepository.UnenrollAsync, for every class at once.
+        using (var unenroll = connection.CreateCommand())
+        {
+            unenroll.Transaction = transaction;
+            unenroll.CommandText = """
+                UPDATE Enrollments
+                SET IsActive = 0, UnenrolledDate = datetime('now')
+                WHERE StudentId = $id AND IsActive = 1;
+                """;
+            unenroll.Parameters.AddWithValue("$id", id);
+            await unenroll.ExecuteNonQueryAsync();
+        }
+
+        transaction.Commit();
+    }
+
     public async Task DeleteAsync(int id)
     {
         using var connection = connectionFactory.CreateOpenConnection();

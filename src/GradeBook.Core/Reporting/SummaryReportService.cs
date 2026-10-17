@@ -5,7 +5,8 @@ using GradeBook.Core.Models;
 namespace GradeBook.Core.Reporting;
 
 /// <summary>
-/// Builds a school-wide summary: every active student, the classes they're in, and their grade
+/// Builds a school-wide summary: every student with grades or a current class in the period (including
+/// students who have since left, flagged inactive), the classes they're in, and their grade
 /// percentage in each for the selected period, plus their absences and tardies summed over the period's
 /// quarters. Reuses StudentReportService's per-class grade calculation rather than recomputing it.
 /// </summary>
@@ -16,7 +17,7 @@ public sealed class SummaryReportService(
 {
     public async Task<SummaryReportData> BuildReportAsync(ReportPeriod period)
     {
-        var students = (await studentRepository.GetAllAsync())
+        var students = (await studentRepository.GetAllAsync(includeInactive: true))
             .OrderBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
             .ToList();
 
@@ -35,7 +36,7 @@ public sealed class SummaryReportService(
                 .Select(r => new SummaryClassGrade(r.ClassName, r.Percentage, r.MissingAssignments))
                 .ToList();
             var (absences, tardies) = attendance.GetValueOrDefault(student.Id);
-            entries.Add(new SummaryStudentEntry(student.Name, classGrades, absences, tardies));
+            entries.Add(new SummaryStudentEntry(student.Name, classGrades, absences, tardies, student.IsActive));
         }
 
         return new SummaryReportData(period, entries);
