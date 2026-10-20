@@ -205,6 +205,10 @@ public sealed class GradeCellHost : Border
             new Binding(nameof(GradeCellViewModel.Status)) { Source = _cell, Mode = BindingMode.TwoWay });
         // Focus can leave while the dropdown is open (that check skips ending the edit), so check again on close.
         statusBox.DropDownClosed += (_, _) => EndEditWhenFocusLeaves();
+        // The ComboBox leaves its press unhandled (it opens on release), so it would bubble to the DataGrid,
+        // which pulls focus onto the grid; this cell would then end the edit and swap the ComboBox out before
+        // the release, taking two clicks to open it. Its own press handling has already run by this point.
+        statusBox.PointerPressed += (_, e) => e.Handled = true;
 
         scoreBox.AddHandler(KeyDownEvent, (_, e) => _onEditorKeyDown(e, true), RoutingStrategies.Tunnel);
         statusBox.AddHandler(KeyDownEvent, (_, e) => _onEditorKeyDown(e, false), RoutingStrategies.Tunnel);
