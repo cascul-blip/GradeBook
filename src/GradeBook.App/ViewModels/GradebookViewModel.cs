@@ -1,5 +1,7 @@
 using System.Collections.ObjectModel;
+using System.Diagnostics;
 using System.Globalization;
+using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using GradeBook.App.Services;
@@ -277,6 +279,7 @@ public partial class GradebookViewModel(
 
     private async Task LoadSelectedClassAsync(int classId, Quarter quarter)
     {
+        var stopwatch = Stopwatch.StartNew();
 
         var activeStudents = (await studentRepository.GetActiveInClassAsync(classId))
             .OrderBy(s => s.Name, StringComparer.OrdinalIgnoreCase)
@@ -289,6 +292,8 @@ public partial class GradebookViewModel(
         await gradeRepository.EnsureGradeRecordsForClassAndQuarterAsync(classId, quarter);
         var records = (await gradeRepository.GetRecordsForClassAndQuarterAsync(classId, quarter))
             .ToDictionary(r => (r.StudentId, r.AssignmentId));
+
+        var databaseTime = stopwatch.Elapsed;
 
         // Build everything before touching the bound collections, so the current grid stays on screen
         // during the database reads instead of going blank.
@@ -310,9 +315,28 @@ public partial class GradebookViewModel(
             rows.Add(row);
         }
 
+        var buildTime = stopwatch.Elapsed;
         ShowGrid(assignments, rows);
         _loadedKey = (classId, quarter);
         _isStale = false;
+        LogLoadTiming(rows.Count, assignments.Count, stopwatch, databaseTime, buildTime);
+    }
+
+    /// <summary>
+    /// Debug builds (e.g. run.sh) print how long each part of a load took, to tell a slow database read
+    /// from a slow grid. Background priority runs after the layout and render pass for the new grid.
+    /// </summary>
+    [Conditional("DEBUG")]
+    private static void LogLoadTiming(int students, int assignments, Stopwatch stopwatch, TimeSpan databaseTime, TimeSpan buildTime)
+    {
+        var showTime = stopwatch.Elapsed;
+        Dispatcher.UIThread.Post(() => Console.WriteLine(
+            $"Gradebook load ({students} students x {assignments} lessons): " +
+            $"database {databaseTime.TotalMilliseconds:0} ms, " +
+            $"view models {(buildTime - databaseTime).TotalMilliseconds:0} ms, " +
+            $"columns + rows {(showTime - buildTime).TotalMilliseconds:0} ms, " +
+            $"layout + render {(stopwatch.Elapsed - showTime).TotalMilliseconds:0} ms, " +
+            $"total {stopwatch.Elapsed.TotalMilliseconds:0} ms"), DispatcherPriority.Background);
     }
 
     /// <summary>
