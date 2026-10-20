@@ -1,6 +1,7 @@
 using System.ComponentModel;
 using System.Globalization;
 using Avalonia.Controls;
+using Avalonia.Controls.Primitives;
 using Avalonia.Data;
 using Avalonia.Input;
 using Avalonia.Interactivity;
@@ -209,6 +210,15 @@ public sealed class GradeCellHost : Border
         // which pulls focus onto the grid; this cell would then end the edit and swap the ComboBox out before
         // the release, taking two clicks to open it. Its own press handling has already run by this point.
         statusBox.PointerPressed += (_, e) => e.Handled = true;
+        // While the dropdown is open, a click outside it only closes it by default, so reaching a score box
+        // took a second click. Pass that click through to whatever was clicked as well.
+        statusBox.TemplateApplied += (_, e) =>
+        {
+            if (e.NameScope.Find<Popup>("PART_Popup") is { } popup)
+            {
+                popup.OverlayDismissEventPassThrough = true;
+            }
+        };
 
         scoreBox.AddHandler(KeyDownEvent, (_, e) => _onEditorKeyDown(e, true), RoutingStrategies.Tunnel);
         statusBox.AddHandler(KeyDownEvent, (_, e) => _onEditorKeyDown(e, false), RoutingStrategies.Tunnel);
