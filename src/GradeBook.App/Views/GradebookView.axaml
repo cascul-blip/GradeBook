@@ -30,15 +30,19 @@
             </StackPanel>
 
             <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="16" VerticalAlignment="Center" Margin="16,0,0,0">
+                <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
+                    <Border Width="14" Height="14" BorderBrush="Red" BorderThickness="2" VerticalAlignment="Center" />
+                    <TextBlock Text="Uncompleted" VerticalAlignment="Center" />
+                </StackPanel>
                 <Border Padding="2,0" Background="Transparent" ToolTip.Tip="{StaticResource LateKeyTip}">
                     <StackPanel Orientation="Horizontal" Spacing="6">
-                        <Border Width="14" Height="14" BorderBrush="DodgerBlue" BorderThickness="2" VerticalAlignment="Center"
+                        <Border Width="14" Height="14" BorderBrush="Orange" BorderThickness="2" VerticalAlignment="Center"
                                 ToolTip.Tip="{StaticResource LateKeyTip}" />
                         <TextBlock Text="Late" VerticalAlignment="Center" ToolTip.Tip="{StaticResource LateKeyTip}" />
                     </StackPanel>
                 </Border>
                 <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center">
-                    <Border Width="14" Height="14" BorderBrush="Orange" BorderThickness="2" VerticalAlignment="Center" />
+                    <Border Width="14" Height="14" BorderBrush="Green" BorderThickness="2" VerticalAlignment="Center" />
                     <TextBlock Text="Extra credit" VerticalAlignment="Center" />
                 </StackPanel>
             </StackPanel>

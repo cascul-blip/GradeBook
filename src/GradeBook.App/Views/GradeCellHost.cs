@@ -25,9 +25,10 @@ public sealed class GradeCellHost : Border
     // Matches the TextBox/ComboBox default height so the row doesn't change size when a cell starts editing.
     private const double PartHeight = 32;
 
-    private static readonly IBrush InvalidScoreBrush = Brushes.Red;
-    private static readonly IBrush AboveMaxScoreBrush = Brushes.Orange;
-    private static readonly IBrush LateScoreBrush = Brushes.DodgerBlue;
+    private static readonly IBrush InvalidScoreBrush = Brushes.Purple;
+    private static readonly IBrush AboveMaxScoreBrush = Brushes.Green;
+    private static readonly IBrush LateScoreBrush = Brushes.Orange;
+    private static readonly IBrush UncompletedScoreBrush = Brushes.Red;
 
     private readonly GradeCellViewModel _cell;
     private readonly double _width;
@@ -277,10 +278,11 @@ public sealed class GradeCellHost : Border
     }
 
     /// <summary>
-    /// Red border while the text isn't a valid score (it isn't saved). Blue border when the lesson is
+    /// Purple border while the text isn't a valid score (it isn't saved). Orange border when the lesson is
     /// late: the box still shows the typed score, and reports subtract 10% of the points possible, rounded
-    /// up. Amber border + tooltip when the saved score is above the points possible (allowed as extra
-    /// credit, but a typo like 300 for 30 should stand out). Null brush means the default border.
+    /// up. Red border while the lesson is Uncompleted. Green border + tooltip when the saved score is above
+    /// the points possible (allowed as extra credit, but a typo like 300 for 30 should stand out).
+    /// Null brush means the default border.
     /// </summary>
     private (IBrush? Brush, string? Tip) GetScoreIndicator(string? text)
     {
@@ -302,6 +304,17 @@ public sealed class GradeCellHost : Border
             }
 
             return (LateScoreBrush, tip);
+        }
+
+        if (_cell.Status == GradeStatus.Uncompleted)
+        {
+            var tip = "Uncompleted — this lesson hasn't been done yet.";
+            if (entered > _cell.PointsPossible)
+            {
+                tip += $" Above the {_cell.PointsPossible:0.##} points possible — extra credit?";
+            }
+
+            return (UncompletedScoreBrush, tip);
         }
 
         if (_cell.IsAboveMax)
