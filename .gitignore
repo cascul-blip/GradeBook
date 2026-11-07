@@ -20,3 +20,6 @@ obj/
 
 ## Release output
 publish/
+
+# Claude Code local settings
+.claude/settings.local.json
